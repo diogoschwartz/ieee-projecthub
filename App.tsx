@@ -68,7 +68,7 @@ const AppLayout = () => {
               
               <div className="flex items-center ml-1 md:ml-4">
                 <img 
-                  src="assets\LogoRamoIEEE.png" 
+                  src="/assets/LogoRamoIEEE.png" 
                   alt="Logo Ramo Estudantil IEEE UnB" 
                   className="h-10 md:h-12 w-auto object-contain" 
                 />
