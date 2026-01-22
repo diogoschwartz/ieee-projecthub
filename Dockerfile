@@ -1,12 +1,12 @@
 # ===== BUILD STAGE =====
-FROM node:18-alpine as builder
+FROM node:18-alpine AS builder
 
 # Set working directory
 WORKDIR /app
 
 # Install dependencies first (better caching)
 COPY package*.json ./
-RUN npm ci --only=production --silent
+RUN npm ci --silent
 
 # Copy source code
 COPY . .
@@ -37,8 +37,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:80 || exit 1
 
-# Switch to non-root user
-USER nginx
-
-# Start nginx
+# Start nginx (não precisa mudar para nginx user pois o Coolify gerencia isso)
 CMD ["nginx", "-g", "daemon off;"]
