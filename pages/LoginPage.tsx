@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Zap, ArrowRight, Lock, Mail, X } from 'lucide-react';
+import { Loader2, Rocket, ArrowRight, Lock, Mail, X } from 'lucide-react';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -70,11 +70,11 @@ export const LoginPage = () => {
 
             <div className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl border border-white/50 p-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
                 <div className="flex flex-col items-center mb-8">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4 transform rotate-3 hover:rotate-6 transition-transform">
-                        <Zap className="w-8 h-8 text-white" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4">
+                        <Rocket className="w-8 h-8 text-white" />
                     </div>
-                    <h1 className="text-2xl font-bold text-gray-900 text-center">ProjectHub</h1>
-                    <p className="text-gray-500 text-sm mt-1 text-center">Faça login para acessar sua área</p>
+                    <h1 className="text-2xl font-bold text-gray-900 text-center">Conecta IEEE</h1>
+                    <p className="text-gray-500 text-sm mt-1 text-center">Faça login para acessar a plataforma</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4">

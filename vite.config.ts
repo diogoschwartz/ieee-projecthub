@@ -49,12 +49,6 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'maskable'
           },
-          {
-            src: 'assets/android-launchericon-192-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'apple touch icon'
-          }
         ],
         categories: ['productivity', 'business'],
         lang: 'pt-BR'
@@ -73,6 +67,10 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           router: ['react-router-dom'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/analytics'],
+          supabase: ['@supabase/supabase-js'],
+          calendar: ['react-big-calendar', 'date-fns'],
+          icons: ['lucide-react'],
         },
       },
     },

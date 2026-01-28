@@ -53,6 +53,7 @@ export interface Profile {
   membership_number?: string;
   cover_config?: string;
   social_links?: any;
+  fcm_token?: string;
   // Hydrated
   chapters?: Chapter[];
   profileChapters?: ProfileChapter[]; // Join table details

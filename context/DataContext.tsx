@@ -7,6 +7,7 @@ import {
   Project, Task, Profile, Chapter, Event, Permission,
   ProfileChapter, ProjectMember, ProjectChapter, TaskAssignee
 } from '../types';
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   tasks: Task[];
@@ -35,6 +36,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [tools, setTools] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(true);
+  const { loading: authLoading, user } = useAuth();
 
   const fetchData = async (skipLoading = false) => {
     try {
@@ -310,9 +312,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+
+
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, user]);
 
   return (
     <DataContext.Provider value={{

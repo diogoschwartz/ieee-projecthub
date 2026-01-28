@@ -19,6 +19,7 @@ import { ClassifiedsPage } from './pages/ClassifiedsPage';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { GlobalAlertProvider, useGlobalAlert } from './components/GlobalAlert';
 import { setupOnMessage } from './lib/notifications';
+import { WelcomeNotificationModal } from './components/WelcomeNotificationModal';
 import { LoginPage } from './pages/LoginPage';
 import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -38,6 +39,28 @@ const AppLayout = () => {
   const { user, profile, signOut } = useAuth();
   const [showSignOut, setShowSignOut] = useState(false);
   const { showAlert } = useGlobalAlert();
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  useEffect(() => {
+    // Check if we should show the welcome modal
+    if (profile && !loading) {
+      // 1. User has no FCM token saved
+      // 2. Permission is 'default' (browser hasn't asked yet)
+      if (!profile.fcm_token && Notification.permission === 'default') {
+        // Only show on mobile devices AND if installed as PWA (standalone)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+
+        if (isMobile && isPWA) {
+          const hasSeen = localStorage.getItem('hasSeenWelcomeModal');
+          if (!hasSeen) {
+            // Delay slightly for better UX
+            setTimeout(() => setShowWelcomeModal(true), 2000);
+          }
+        }
+      }
+    }
+  }, [profile, loading]);
 
   useEffect(() => {
     const unsubscribe = setupOnMessage((payload: any) => {
@@ -179,8 +202,17 @@ const AppLayout = () => {
         </main>
       </div>
 
+
+
       <PWAInstallPrompt />
-    </div>
+      <WelcomeNotificationModal
+        isOpen={showWelcomeModal}
+        onClose={() => {
+          setShowWelcomeModal(false);
+          localStorage.setItem('hasSeenWelcomeModal', 'true');
+        }}
+      />
+    </div >
   );
 }
 

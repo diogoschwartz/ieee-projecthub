@@ -12,8 +12,13 @@ export const requestNotificationPermission = async (userId: string | number) => 
             // Using a placeholder or assuming the user will replace it.
             // If the user hasn't provided one, we can try to proceed without it (sometimes works if default is set) 
             // or use a clear placeholder.
-            // Get the registration from the PWA service worker
-            const registration = await navigator.serviceWorker.ready;
+            // Get the registration from the PWA service worker with a timeout
+            const registration = await Promise.race([
+                navigator.serviceWorker.ready,
+                new Promise<ServiceWorkerRegistration>((_, reject) =>
+                    setTimeout(() => reject(new Error('Service Worker registration timed out')), 5000)
+                )
+            ]);
 
             const currentToken = await getToken(messaging, {
                 vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,

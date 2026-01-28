@@ -1,126 +1,114 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ConectaIEEE</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="description" content="Sistema de gestão de projetos para IEEE Student Branch" />
-    <meta name="theme-color" content="#1e40af" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/assets/android-launchericon-192-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/assets/android-launchericon-192-192.png">
-    <link rel="manifest" href="/manifest.webmanifest">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class', // Desativa o modo escuro automático do sistema
-        theme: {
-          extend: {
-            colors: {
-              primary: '#2563eb', // blue-600
-              secondary: '#4f46e5', // indigo-600
-              paper: '#f9f7f1', // Cor de papel de jornal
-            },
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              newspaper: ['"Playfair Display"', 'serif'],
-            },
-          },
-        },
-      }
-    </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/react-big-calendar@1.8.5/lib/css/react-big-calendar.css" rel="stylesheet">
-    <style>
-      :root {
-        color-scheme: light; /* Força o navegador a renderizar controles e scrollbars em modo claro */
-      }
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #f9fafb; /* bg-gray-50 */
-        color: #111827; /* text-gray-900 */
-      }
-      /* Utilitários para esconder scrollbar mantendo funcionalidade */
-      .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-      }
-      .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-      }
-      /* Customização do React Big Calendar para combinar com Tailwind */
-      .rbc-calendar {
-        font-family: 'Inter', sans-serif;
-      }
-      .rbc-header {
-        padding: 12px 4px;
-        font-weight: 600;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: #6b7280;
-        border-bottom: 1px solid #e5e7eb;
-        background-color: #f9fafb;
-      }
-      .rbc-month-view {
-        border: 1px solid #e5e7eb;
-        border-radius: 0.75rem;
-        background-color: white;
-      }
-      .rbc-day-bg + .rbc-day-bg {
-        border-left: 1px solid #e5e7eb;
-      }
-      .rbc-month-row + .rbc-month-row {
-        border-top: 1px solid #e5e7eb;
-      }
-      .rbc-date-cell {
-        padding: 8px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: #374151;
-      }
-      .rbc-off-range-bg {
-        background-color: #f9fafb;
-      }
-      .rbc-today {
-        background-color: #eff6ff; /* blue-50 */
-      }
-      .rbc-event {
-        border-radius: 6px;
-        padding: 2px 5px;
-        font-size: 0.75rem;
-        border: none;
-      }
-      .rbc-show-more {
-        background-color: transparent;
-        color: #6b7280;
-        font-weight: 500;
-        font-size: 0.75rem;
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?deps=react@18.2.0,react-dom@18.2.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.469.0?deps=react@18.2.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.3",
-    "react-markdown": "https://esm.sh/react-markdown@9.0.1?deps=react@18.2.0,react-dom@18.2.0",
-    "react-big-calendar": "https://esm.sh/react-big-calendar@1.8.5?deps=react@18.2.0,react-dom@18.2.0",
-    "date-fns": "https://esm.sh/date-fns@2.30.0",
-    "date-fns/": "https://esm.sh/date-fns@2.30.0/"
-  }
-}
-</script>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ConectaIEEE</title>
+
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="Sistema de gestão de projetos para IEEE Student Branch" />
+  <meta name="theme-color" content="#1e40af" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/assets/android-launchericon-192-192.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/assets/android-launchericon-192-192.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+
+  <!-- Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.googleapis.com https://*.firebaseio.com;">
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      /* Força o navegador a renderizar controles e scrollbars em modo claro */
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f9fafb;
+      /* bg-gray-50 */
+      color: #111827;
+      /* text-gray-900 */
+    }
+
+    /* Utilitários para esconder scrollbar mantendo funcionalidade */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Customização do React Big Calendar para combinar com Tailwind */
+    .rbc-calendar {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .rbc-header {
+      padding: 12px 4px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+      background-color: #f9fafb;
+    }
+
+    .rbc-month-view {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      background-color: white;
+    }
+
+    .rbc-day-bg+.rbc-day-bg {
+      border-left: 1px solid #e5e7eb;
+    }
+
+    .rbc-month-row+.rbc-month-row {
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .rbc-date-cell {
+      padding: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .rbc-off-range-bg {
+      background-color: #f9fafb;
+    }
+
+    .rbc-today {
+      background-color: #eff6ff;
+      /* blue-50 */
+    }
+
+    .rbc-event {
+      border-radius: 6px;
+      padding: 2px 5px;
+      font-size: 0.75rem;
+      border: none;
+    }
+
+    .rbc-show-more {
+      background-color: transparent;
+      color: #6b7280;
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
+  </style>
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>
