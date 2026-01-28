@@ -13,12 +13,6 @@ export enum ThemeMode {
 export interface Permission {
   id: number;
   slug: string; // 'admin', 'chair', 'manager', 'member', 'external'
-  can_manage_users: boolean;
-  can_manage_financials: boolean;
-  can_manage_projects: boolean;
-  can_manage_tasks: boolean;
-  can_view_sensitive_data: boolean;
-  can_approve_requests: boolean;
 }
 
 export interface Chapter {
@@ -35,9 +29,14 @@ export interface Chapter {
   content_url?: string | any;
   members_count: number;
   projects_count: number;
-  // Legacy Compatibility
   nome?: string;
   sigla?: string;
+  icon?: any;
+  links?: any[];
+  coverImage?: string;
+  cor?: string;
+  descricao?: string;
+  calendarUrl?: string; // Legacy
 }
 
 export interface Profile {
@@ -57,6 +56,23 @@ export interface Profile {
   // Hydrated
   chapters?: Chapter[];
   profileChapters?: ProfileChapter[]; // Join table details
+
+  // Legacy Compatibility
+  nome?: string;
+  avatar?: string;
+  chapterRoles?: Record<number, string>;
+  chapterIds?: number[];
+  capituloId?: number;
+  dataNascimento?: string;
+  habilidades?: string[];
+  foto?: string;
+  nroMembresia?: string;
+  coverConfig?: string;
+  social?: {
+    linkedin?: string;
+    github?: string;
+    instagram?: string;
+  };
 }
 
 export interface ProfileChapter {
@@ -91,6 +107,23 @@ export interface Project {
   // Raw Relationships (Optional, for easy access)
   projectMembers?: ProjectMember[];
   projectChapters?: ProjectChapter[];
+
+  // Legacy Compatibility
+  nome?: string;
+  descricao?: string;
+  progresso?: number;
+  dataInicio?: string;
+  dataFim?: string;
+  parceria?: boolean;
+  responsavel?: string;
+  ownerIds?: number[];
+  teamIds?: number[];
+  capituloId?: number[];
+  capitulos?: Chapter[];
+  capitulo?: string;
+  links?: any[];
+  cor?: string;
+  coverImage?: string;
 }
 
 export interface ProjectMember {
@@ -120,6 +153,22 @@ export interface Task {
   // Hydrated
   project?: Project;
   assignees: Profile[];
+
+  // Legacy Compatibility
+  titulo?: string;
+  descricao?: string;
+  prioridade?: string;
+  dataInicio?: string;
+  prazo?: string;
+  anexos?: number;
+  url?: string;
+  projetoId?: number;
+  projeto?: string;
+  responsavelId?: number | null;
+  responsavelIds?: number[];
+  responsavel?: string;
+  responsavelFull?: Profile | null;
+  capitulo?: string;
 }
 
 export interface TaskAssignee {
@@ -149,4 +198,19 @@ export interface Event {
   // Hydrated
   chapter?: Chapter;
   project?: Project;
+
+  // Legacy/Hydrated
+  startDate?: string;
+  endDate?: string;
+  subCategory?: string;
+  eventType?: string;
+  hostOus?: string[];
+  isPublic?: boolean;
+  vtoolsReported?: boolean;
+  meetingMinutesUrl?: string;
+  attendeesIEEE?: number;
+  attendeesGuests?: number;
+  attendeeList?: any[];
+  chapterId?: number;
+  projectId?: number;
 }

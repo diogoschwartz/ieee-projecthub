@@ -264,7 +264,35 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }));
 
       // 7. Others
-      setClassifieds(classifiedsRes.data || []);
+      // 7. Others - Classifieds with Relations
+      const loadedClassifieds = (classifiedsRes.data || []).map((c: any) => {
+        const responsibleProfile = loadedUsers.find(u => u.id === c.responsible_id);
+        const linkedTask = loadedTasks.find(t => t.id === c.task_id);
+        const linkedChapters = (c.chapter_ids || []).map((cid: number) =>
+          loadedChapters.find(ch => ch.id === cid)
+        ).filter(Boolean);
+
+        return {
+          id: c.id,
+          type: c.type,
+          title: c.title,
+          description: c.description,
+          imageUrl: c.image_url,
+          createdAt: c.created_at,
+          taskId: c.task_id,
+          chapterIds: c.chapter_ids || [],
+          responsible_id: c.responsible_id,
+          offers_text: c.offers_text, // Map Offers History
+
+          // Hydrated
+          responsible: responsibleProfile ? responsibleProfile.full_name : 'Anônimo',
+          responsibleProfile: responsibleProfile,
+          task: linkedTask,
+          chapters: linkedChapters
+        };
+      });
+
+      setClassifieds(loadedClassifieds);
       setChapterGoals(goalsRes.data || []);
       setTools(toolsRes.data || []);
 

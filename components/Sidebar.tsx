@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { FolderKanban, X, ClipboardList, LayoutGrid, Briefcase, Users, Settings, LogOut, Home, Calendar, Newspaper, Shield } from 'lucide-react';
+import { FolderKanban, X, ClipboardList, LayoutGrid, Briefcase, Users, Settings, LogOut, Home, Calendar, Newspaper, Shield, Book } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen }: any) => {
@@ -80,6 +80,16 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobile
             <Users className="w-5 h-5 flex-shrink-0" />
             {(sidebarOpen || mobileMenuOpen) && <span className="font-medium">Equipe</span>}
           </NavLink>
+
+          <a
+            href="https://sites.google.com/view/ramoieeeunb-tutoriais/p%C3%A1gina-inicial"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors hover:bg-blue-700"
+          >
+            <Book className="w-5 h-5 flex-shrink-0" />
+            {(sidebarOpen || mobileMenuOpen) && <span className="font-medium">Biblioteca IEEE</span>}
+          </a>
 
           {/* Divisória e Funções Administrativas */}
           {/* Divisória e Funções Administrativas */}

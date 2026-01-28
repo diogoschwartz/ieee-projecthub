@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Zap, ArrowRight, Lock, Mail } from 'lucide-react';
+import { Loader2, Zap, ArrowRight, Lock, Mail, X } from 'lucide-react';
 
 export const LoginPage = () => {
     const navigate = useNavigate();
@@ -10,6 +10,11 @@ export const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [showForgotModal, setShowForgotModal] = useState(false);
+    const [resetEmail, setResetEmail] = useState('');
+    const [resetLoading, setResetLoading] = useState(false);
+    const [resetMessage, setResetMessage] = useState('');
+    const [resetError, setResetError] = useState('');
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,6 +35,28 @@ export const LoginPage = () => {
             setError(error.message || 'Erro ao fazer login. Verifique suas credenciais.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setResetLoading(true);
+        setResetError('');
+        setResetMessage('');
+
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                redirectTo: window.location.origin,
+            });
+
+            if (error) throw error;
+
+            setResetMessage('Um link para redefinir sua senha foi encaminhado ao seu e-mail');
+        } catch (error: any) {
+            console.error('Reset password error:', error);
+            setResetError(error.message || 'Erro ao enviar solicitação. Tente novamente.');
+        } finally {
+            setResetLoading(false);
         }
     };
 
@@ -57,6 +84,8 @@ export const LoginPage = () => {
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                                 <Mail className="w-5 h-5" />
                             </div>
+
+
                             <input
                                 type="email"
                                 required
@@ -85,6 +114,16 @@ export const LoginPage = () => {
                         </div>
                     </div>
 
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setShowForgotModal(true)}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                        >
+                            Esqueceu sua senha?
+                        </button>
+                    </div>
+
                     {error && (
                         <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2 animate-in slide-in-from-top-2">
                             <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
@@ -105,6 +144,74 @@ export const LoginPage = () => {
                     &copy; 2026 Conecta IEEE UnB. Todos os direitos reservados.
                 </div>
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgotModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowForgotModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+
+                        <div className="mb-6">
+                            <h2 className="text-xl font-bold text-gray-900">Redefinir Senha</h2>
+                            <p className="text-gray-500 text-sm mt-1">
+                                Digite seu e-mail para receber um link de redefinição.
+                            </p>
+                        </div>
+
+                        {resetMessage ? (
+                            <div className="p-4 bg-green-50 border border-green-100 rounded-xl text-green-700 text-center animate-in fade-in slide-in-from-bottom-2">
+                                <p className="font-medium">E-mail enviado!</p>
+                                <p className="text-sm mt-1">{resetMessage}</p>
+                                <button
+                                    onClick={() => setShowForgotModal(false)}
+                                    className="mt-4 text-sm font-semibold text-green-800 hover:underline"
+                                >
+                                    Voltar para o login
+                                </button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleResetPassword} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-sm font-semibold text-gray-700 ml-1">Email Cadastrado</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                            <Mail className="w-5 h-5" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={resetEmail}
+                                            onChange={(e) => setResetEmail(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                                            placeholder="seu@email.com"
+                                        />
+                                    </div>
+                                </div>
+
+                                {resetError && (
+                                    <div className="p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                                        {resetError}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={resetLoading}
+                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {resetLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar Link'}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

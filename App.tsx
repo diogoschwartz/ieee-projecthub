@@ -17,9 +17,10 @@ import { Settings } from './pages/Settings';
 import { CalendarPage } from './pages/CalendarPage';
 import { ClassifiedsPage } from './pages/ClassifiedsPage';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { NotificationToast } from './components/NotificationToast';
-import { notificationService } from './services/notificationService';
+import { GlobalAlertProvider, useGlobalAlert } from './components/GlobalAlert';
+import { setupOnMessage } from './lib/notifications';
 import { LoginPage } from './pages/LoginPage';
+import { UpdatePasswordPage } from './pages/UpdatePasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Admin Pages
@@ -36,25 +37,19 @@ const AppLayout = () => {
   const { loading } = useData();
   const { user, profile, signOut } = useAuth();
   const [showSignOut, setShowSignOut] = useState(false);
+  const { showAlert } = useGlobalAlert();
 
-  // Inicializa serviço de notificações
   useEffect(() => {
-    // TODO: Replace with your actual OneSignal App ID
-    const ONESIGNAL_APP_ID = "b7a09f77-c7e1-45ad-b576-296a0b5aec41";
+    const unsubscribe = setupOnMessage((payload: any) => {
+      showAlert(
+        payload.notification?.title || 'Nova Notificação',
+        payload.notification?.body || 'Você tem uma nova mensagem.',
+        'info'
+      );
+    });
+    return () => unsubscribe();
+  }, [showAlert]);
 
-    notificationService.init(ONESIGNAL_APP_ID);
-
-    if (profile?.id) {
-      notificationService.setExternalUserId(profile.id);
-      if (profile.role) {
-        notificationService.addTag('role', profile.role);
-      }
-    }
-
-    return () => {
-      // Cleanup if necessary
-    };
-  }, [profile]);
 
   if (loading) {
     return (
@@ -107,10 +102,6 @@ const AppLayout = () => {
             </div>
 
             <div className="flex items-center gap-2 md:gap-3">
-              <button className="p-2 hover:bg-gray-100 rounded-lg relative transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-              </button>
 
               <div className="relative">
                 <button
@@ -189,7 +180,6 @@ const AppLayout = () => {
       </div>
 
       <PWAInstallPrompt />
-      <NotificationToast />
     </div>
   );
 }
@@ -201,14 +191,18 @@ export function App() {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <DataProvider>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
+          <GlobalAlertProvider>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
 
-            {/* Private Routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/*" element={<AppLayout />} />
-            </Route>
-          </Routes>
+
+              {/* Private Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/*" element={<AppLayout />} />
+              </Route>
+            </Routes>
+          </GlobalAlertProvider>
         </DataProvider>
       </AuthProvider>
     </Router>

@@ -24,7 +24,11 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
+import { requestNotificationPermission } from '../lib/notifications';
+import { Bell } from 'lucide-react';
 
 // Lista de cores do Tailwind para o seletor
 const TW_COLORS = [
@@ -37,6 +41,7 @@ const TW_COLORS = [
 
 export const Settings = () => {
    const { users, chapters, fetchData } = useData();
+   const { profile } = useAuth();
    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
    const [loading, setLoading] = useState(false);
    const [successMsg, setSuccessMsg] = useState('');
@@ -48,6 +53,10 @@ export const Settings = () => {
       to: 'indigo'
    });
    const pickerRef = useRef<HTMLDivElement>(null);
+   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+   const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
+
+   const isAdmin = profile?.role === 'admin';
 
    // Markdown Preview State
    const [showBioPreview, setShowBioPreview] = useState(false);
@@ -69,23 +78,34 @@ export const Settings = () => {
 
    // Load User Data when selection changes
    useEffect(() => {
-      if (users.length > 0 && selectedUserId === null) {
-         setSelectedUserId(users[0].id);
+      if (users.length > 0) {
+         if (selectedUserId === null) {
+            // Se já tem profile carregado, usa ele, senão o primeiro da lista (fallback)
+            // Mas a regra diz: por padrão seleciona o logado.
+            if (profile) {
+               setSelectedUserId(profile.id);
+            } else {
+               setSelectedUserId(users[0].id);
+            }
+         } else if (!isAdmin && profile && selectedUserId !== profile.id) {
+            // Se não é admin, força selecionar a si mesmo
+            setSelectedUserId(profile.id);
+         }
       }
-   }, [users, selectedUserId]);
+   }, [users, selectedUserId, profile, isAdmin]);
 
    useEffect(() => {
       if (selectedUserId) {
          const user = users.find((u: any) => u.id === Number(selectedUserId));
          if (user) {
             setFormData({
-               email: user.email,
-               matricula: user.matricula === 'N/D' ? '' : user.matricula,
+               email: user.email || '',
+               matricula: user.matricula === 'N/D' ? '' : (user.matricula || ''),
                nroMembresia: user.nroMembresia || '',
                dataNascimento: user.dataNascimento ? user.dataNascimento.split('T')[0] : '',
-               foto: user.foto,
-               coverConfig: user.coverConfig,
-               bio: user.bio,
+               foto: user.foto || '',
+               coverConfig: user.coverConfig || '',
+               bio: user.bio || '',
                social: {
                   linkedin: user.social?.linkedin || '',
                   github: user.social?.github || '',
@@ -171,7 +191,9 @@ export const Settings = () => {
       setShowGradientPicker(false);
    };
 
-   if (!selectedUser) return <div className="p-8">Carregando...</div>;
+   if (loading) return <div className="p-8">Carregando...</div>;
+   if (!selectedUser && users.length > 0) return <div className="p-8">Usuário não encontrado.</div>;
+   if (!selectedUser) return <div className="p-8">Carregando dados...</div>;
 
    return (
       <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -184,15 +206,22 @@ export const Settings = () => {
             {/* User Selector (Simulating Auth) */}
             <div className="flex items-center gap-2 bg-white p-2 rounded-xl border border-gray-200 shadow-sm overflow-hidden max-w-full">
                <span className="text-xs font-bold text-gray-500 uppercase px-2 shrink-0">Editando:</span>
-               <select
-                  value={selectedUserId || ''}
-                  onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                  className="bg-transparent border-none text-sm font-medium text-gray-900 focus:ring-0 cursor-pointer outline-none flex-1 min-w-0 truncate pr-8 max-w-[140px] md:max-w-xs"
-               >
-                  {users.map((u: any) => (
-                     <option key={u.id} value={u.id}>{u.full_name}</option>
-                  ))}
-               </select>
+
+               {isAdmin ? (
+                  <select
+                     value={selectedUserId || ''}
+                     onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                     className="bg-transparent border-none text-sm font-medium text-gray-900 focus:ring-0 cursor-pointer outline-none flex-1 min-w-0 truncate pr-8 max-w-[140px] md:max-w-xs"
+                  >
+                     {users.map((u: any) => (
+                        <option key={u.id} value={u.id}>{u.full_name}</option>
+                     ))}
+                  </select>
+               ) : (
+                  <span className="text-sm font-medium text-gray-900 px-2 truncate">
+                     {selectedUser?.full_name || 'Usuário'}
+                  </span>
+               )}
             </div>
          </div>
 
@@ -236,10 +265,23 @@ export const Settings = () => {
 
                   {/* Informações de Contato */}
                   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <User className="w-5 h-5 text-blue-600" />
-                        Informações Pessoais
-                     </h3>
+                     <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                           <User className="w-5 h-5 text-blue-600" />
+                           Informações Pessoais
+                        </h3>
+                        {/* Botão Alterar Senha - visível apenas para o próprio usuário */}
+                        {profile && selectedUserId === profile.id && (
+                           <button
+                              type="button"
+                              onClick={() => setIsChangePasswordOpen(true)}
+                              className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
+                           >
+                              <Lock className="w-3.5 h-3.5" />
+                              Alterar Senha
+                           </button>
+                        )}
+                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
@@ -530,6 +572,38 @@ export const Settings = () => {
                      </div>
                   </div>
 
+                  {/* Notificações */}
+                  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                     <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <Bell className="w-5 h-5 text-yellow-500" />
+                        Notificações
+                     </h3>
+                     <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-600">
+                           Receba alertas sobre tarefas e novidades.
+                        </div>
+                        <button
+                           type="button"
+                           onClick={async () => {
+                              if (!selectedUserId) return;
+                              try {
+                                 const token = await requestNotificationPermission(selectedUserId);
+                                 if (token) {
+                                    setPermissionStatus('granted');
+                                    alert('Notificações ativadas com sucesso!');
+                                 }
+                              } catch (e) {
+                                 console.error(e);
+                                 alert('Erro ao ativar notificações.');
+                              }
+                           }}
+                           className="px-4 py-2 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 rounded-lg text-sm font-medium transition-colors"
+                        >
+                           {permissionStatus === 'granted' ? 'Re-sincronizar' : 'Ativar Notificações'}
+                        </button>
+                     </div>
+                  </div>
+
                </div>
             </div>
 
@@ -548,7 +622,10 @@ export const Settings = () => {
             </div>
          </form>
 
-
+         <ChangePasswordModal
+            isOpen={isChangePasswordOpen}
+            onClose={() => setIsChangePasswordOpen(false)}
+         />
       </div>
    );
 };

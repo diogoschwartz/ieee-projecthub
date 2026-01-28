@@ -11,6 +11,8 @@ import { useData } from '../context/DataContext';
 import { PriorityBadge, StatusBadge, UserAvatar } from '../lib/utils';
 import { NewTaskModal } from '../components/NewTaskModal';
 import { supabase } from '../lib/supabase';
+import { usePermissions } from '../hooks/usePermissions';
+import { useGlobalAlert } from '../components/GlobalAlert';
 
 // --- Types (Single Source of Truth Structure) ---
 type ResourceType = 'url' | 'html';
@@ -70,7 +72,9 @@ const parseTaskResources = (task: any): ResourceItem[] => {
 export const TaskDetails = () => {
   const { taskId } = useParams();
   const navigate = useNavigate();
-  const { tasks, fetchData, users } = useData();
+  const { tasks, fetchData, users, projects } = useData();
+  const { withTaskEditPermission } = usePermissions();
+  const { showAlert } = useGlobalAlert();
 
   // UI States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -90,6 +94,8 @@ export const TaskDetails = () => {
   const task = tasks.find((t: any) =>
     t.public_id === taskId // Strict Public ID Check
   );
+
+  const project = projects.find((p: any) => p.id === task?.projetoId || p.id === task?.project_id);
 
   // --- Effect: Load from Source of Truth ---
   useEffect(() => {
@@ -111,45 +117,52 @@ export const TaskDetails = () => {
   // --- Handlers ---
 
   const handleSaveDescription = async () => {
-    setIsSavingDesc(true);
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ description: description })
-        .eq('id', task.id);
+    if (!task || !project) return;
 
-      if (error) throw error;
+    withTaskEditPermission(task, project, async () => {
+      setIsSavingDesc(true);
+      try {
+        const { error } = await supabase
+          .from('tasks')
+          .update({ description: description })
+          .eq('id', task.id);
 
-      await fetchData(true);
-      setIsEditingDesc(false);
-      setShowDescPreview(false);
-    } catch (error) {
-      console.error("Error saving description:", error);
-      alert("Erro ao salvar descrição");
-    } finally {
-      setIsSavingDesc(false);
-    }
+        if (error) throw error;
+
+        await fetchData(true);
+        setIsEditingDesc(false);
+        setShowDescPreview(false);
+      } catch (error) {
+        console.error("Error saving description:", error);
+        showAlert("Erro ao Salvar", "Não foi possível salvar a descrição.", "error");
+      } finally {
+        setIsSavingDesc(false);
+      }
+    });
   };
 
   const handleAddResource = async () => {
-    if (!newResValue.trim()) return;
-    setIsAddingResource(true);
+    if (!newResValue.trim() || !task || !project) return;
 
-    const newResource: ResourceItem = {
-      type: 'url',
-      value: newResValue.trim(),
-      displayMode: newResDisplay
-    };
+    withTaskEditPermission(task, project, async () => {
+      setIsAddingResource(true);
 
-    const updatedResources = [...resources, newResource];
-    setResources(updatedResources);
-    setNewResValue('');
+      const newResource: ResourceItem = {
+        type: 'url',
+        value: newResValue.trim(),
+        displayMode: newResDisplay
+      };
 
-    try {
-      await saveResources(updatedResources);
-    } finally {
-      setIsAddingResource(false);
-    }
+      const updatedResources = [...resources, newResource];
+      setResources(updatedResources);
+      setNewResValue('');
+
+      try {
+        await saveResources(updatedResources);
+      } finally {
+        setIsAddingResource(false);
+      }
+    });
   };
 
   const saveResources = async (resourcesToSave: ResourceItem[]) => {
@@ -170,14 +183,17 @@ export const TaskDetails = () => {
       await fetchData(true);
     } catch (err: any) {
       console.error('Erro ao salvar recursos no banco:', err);
-      alert(`Erro ao salvar recursos: ${err.message || 'Erro desconhecido'}`);
+      showAlert("MSG_ERROR", `Erro ao salvar recursos: ${err.message || 'Erro desconhecido'}`, "error");
       await fetchData(true);
     }
   };
 
   const handleDeleteResource = async (indexToRemove: number) => {
-    const updatedResources = resources.filter((_, index) => index !== indexToRemove);
-    await saveResources(updatedResources);
+    if (!task || !project) return;
+    withTaskEditPermission(task, project, async () => {
+      const updatedResources = resources.filter((_, index) => index !== indexToRemove);
+      await saveResources(updatedResources);
+    });
   };
 
   // --- Renders ---
@@ -323,7 +339,9 @@ export const TaskDetails = () => {
             </div>
 
             <button
-              onClick={() => setIsEditModalOpen(true)}
+              onClick={() => {
+                if (task && project) withTaskEditPermission(task, project, () => setIsEditModalOpen(true));
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-medium transition-colors"
             >
               <Edit2 className="w-4 h-4" />
@@ -338,7 +356,9 @@ export const TaskDetails = () => {
               </h3>
               {!isEditingDesc && (
                 <button
-                  onClick={() => setIsEditingDesc(true)}
+                  onClick={() => {
+                    if (task && project) withTaskEditPermission(task, project, () => setIsEditingDesc(true));
+                  }}
                   className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                   title="Editar descrição"
                 >

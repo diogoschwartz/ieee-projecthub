@@ -11,6 +11,7 @@ import {
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../context/DataContext';
 import { PriorityBadge, StatusBadge, UserAvatar, extractPublicIdFromSlug, getTaskUrl } from '../lib/utils';
+import { useGlobalAlert } from '../components/GlobalAlert';
 import { NewTaskModal } from '../components/NewTaskModal';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { ProjectGantt } from '../components/ProjectGantt';
@@ -89,11 +90,16 @@ const parseTaskResources = (task: any): ResourceItem[] => {
   }
 };
 
+import { usePermissions } from '../hooks/usePermissions';
+
 export const ProjectDetails = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation(); // Hook logic
   const { projects, tasks, users, events, fetchData } = useData();
+  const { withProjectEditPermission, withTaskCreatePermission, withTaskEditPermission } = usePermissions();
+  const { showAlert } = useGlobalAlert();
+
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
@@ -299,80 +305,92 @@ export const ProjectDetails = () => {
   };
 
   const handleStatusUpdate = async (taskId: number, newStatus: string) => {
-    setOpenStatusMenuId(null);
-    setIsUpdatingStatus(taskId);
-    try {
-      const { error } = await supabase
-        .from('tasks')
-        .update({ status: newStatus })
-        .eq('id', taskId);
+    const task = tasks.find((t: any) => t.id === taskId);
+    if (!task) return;
 
-      if (error) throw error;
-      await fetchData(true); // Refresh data quietly
-    } catch (error) {
-      console.error("Erro ao atualizar status:", error);
-      alert("Não foi possível atualizar o status.");
-    } finally {
-      setIsUpdatingStatus(null);
-    }
+    withTaskEditPermission(task, projeto, async () => {
+      setOpenStatusMenuId(null);
+      setIsUpdatingStatus(taskId);
+      try {
+        const { error } = await supabase
+          .from('tasks')
+          .update({ status: newStatus })
+          .eq('id', taskId);
+
+        if (error) throw error;
+        await fetchData(true); // Refresh data quietly
+      } catch (error) {
+        console.error("Erro ao atualizar status:", error);
+        showAlert("Erro na Atualização", "Você não tem permissão para alterar este status ou ocorreu um erro.", "error");
+      } finally {
+        setIsUpdatingStatus(null);
+      }
+    });
   };
 
   const handleSaveNotes = async () => {
-    setIsSavingNotes(true);
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ notes: notes })
-        .eq('id', projeto.id);
+    withProjectEditPermission(projeto, async () => {
+      setIsSavingNotes(true);
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ notes: notes })
+          .eq('id', projeto.id);
 
-      if (error) throw error;
-      setIsEditingNotes(false);
-      setShowNotesPreview(false);
-      await fetchData(true);
-    } catch (e) {
-      console.error("Error saving notes", e);
-      alert("Erro ao salvar anotações");
-    } finally {
-      setIsSavingNotes(false);
-    }
+        if (error) throw error;
+        setIsEditingNotes(false);
+        setShowNotesPreview(false);
+        await fetchData(true);
+      } catch (e) {
+        console.error("Error saving notes", e);
+        showAlert("Erro ao Salvar", "Não foi possível salvar as anotações.", "error");
+      } finally {
+        setIsSavingNotes(false);
+      }
+    });
   };
 
   const handleAddLink = async () => {
     if (!newLink.url || !newLink.title) return;
-    setIsAddingLink(true);
-    const updatedLinks = [...links, newLink];
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ content_url: JSON.stringify(updatedLinks) })
-        .eq('id', projeto.id);
 
-      if (error) throw error;
-      setNewLink({ title: '', url: '', emoji: '🔗' });
-      await fetchData(true);
-    } catch (e) {
-      console.error("Error saving link", e);
-      alert("Erro ao salvar link");
-    } finally {
-      setIsAddingLink(false);
-    }
+    withProjectEditPermission(projeto, async () => {
+      setIsAddingLink(true);
+      const updatedLinks = [...links, newLink];
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ content_url: JSON.stringify(updatedLinks) })
+          .eq('id', projeto.id);
+
+        if (error) throw error;
+        setNewLink({ title: '', url: '', emoji: '🔗' });
+        await fetchData(true);
+      } catch (e) {
+        console.error("Error saving link", e);
+        showAlert("Erro ao Salvar", "Não foi possível adicionar o link.", "error");
+      } finally {
+        setIsAddingLink(false);
+      }
+    });
   };
 
   const handleDeleteLink = async (index: number) => {
-    const updatedLinks = links.filter((_, i) => i !== index);
-    setLinks(updatedLinks); // Optimistic UI
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ content_url: JSON.stringify(updatedLinks) })
-        .eq('id', projeto.id);
+    withProjectEditPermission(projeto, async () => {
+      const updatedLinks = links.filter((_, i) => i !== index);
+      setLinks(updatedLinks); // Optimistic UI
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ content_url: JSON.stringify(updatedLinks) })
+          .eq('id', projeto.id);
 
-      if (error) throw error;
-      await fetchData(true);
-    } catch (e) {
-      console.error("Error removing link", e);
-      alert("Erro ao remover link");
-    }
+        if (error) throw error;
+        await fetchData(true);
+      } catch (e) {
+        console.error("Error removing link", e);
+        showAlert("Erro ao Remover", "Não foi possível remover o link.", "error");
+      }
+    });
   };
 
   const statusOptions = [
@@ -492,7 +510,7 @@ export const ProjectDetails = () => {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowNewTaskModal(true)}
+                onClick={() => withTaskCreatePermission(projeto, () => setShowNewTaskModal(true))}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors whitespace-nowrap shadow-sm shadow-blue-200"
               >
                 <Plus className="w-5 h-5" />
@@ -500,7 +518,7 @@ export const ProjectDetails = () => {
               </button>
 
               <button
-                onClick={() => setShowEditProjectModal(true)}
+                onClick={() => withProjectEditPermission(projeto, () => setShowEditProjectModal(true))}
                 className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 bg-white border border-gray-200 rounded-lg transition-all shadow-sm"
                 title="Editar Projeto"
               >

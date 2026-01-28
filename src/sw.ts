@@ -1,16 +1,33 @@
 import { cleanupOutdatedCaches, precacheAndRoute } from 'workbox-precaching';
-import { clientsClaim, skipWaiting } from 'workbox-core';
+import { clientsClaim } from 'workbox-core';
 import { registerRoute } from 'workbox-routing';
 import { NetworkFirst, CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
-
-// Import OneSignal SDK Worker
-importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+import { initializeApp } from 'firebase/app';
+import { getMessaging, onBackgroundMessage } from 'firebase/messaging/sw';
+import { firebaseConfig } from '../lib/firebase_constants';
 
 declare let self: ServiceWorkerGlobalScope;
 
+// Initialize Firebase in Service Worker
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+onBackgroundMessage(messaging, (payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+    // Customize notification here
+    const notificationTitle = payload.notification?.title || 'Conecta IEEE';
+    const notificationOptions = {
+        body: payload.notification?.body,
+        icon: '/assets/android-launchericon-192-192.png', // Adjust path if needed
+        data: payload.data
+    };
+
+    (self as any).registration.showNotification(notificationTitle, notificationOptions);
+});
+
 cleanupOutdatedCaches();
-skipWaiting();
+(self as any).skipWaiting();
 clientsClaim();
 
 // Precache resources registered by VitePWA

@@ -28,3 +28,9 @@ public/icons/windows11/
 public/icons/ios/1024.png
 dist/
 dev-dist/
+
+# Firebase
+.firebase/
+
+# Environment
+.env
