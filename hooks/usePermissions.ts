@@ -21,8 +21,11 @@ export const usePermissions = () => {
     const isElevatedUser = (project?: Project) => {
         if (!profile) return false;
 
-        // Global Admin
-        if (profile.role === 'admin') return true; // Assuming profile.role exists for super-admin or check profileChapters for 'admin'
+        // Global Admin Check (New Model: Chapter 1 + Admin Slug)
+        const chaptersList = (profile as any).profile_chapters || (profile as any).profileChapters || [];
+        const isGlobalAdmin = chaptersList.some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
+
+        if (isGlobalAdmin) return true;
 
         // Check 'admin' role in any chapter (if that's how it works) or specifically associated chapter
         const userChapters = profile.profileChapters || [];

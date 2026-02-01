@@ -13,6 +13,7 @@ ALTER TABLE public.project_chapters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.task_assignees ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tools ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.finances ENABLE ROW LEVEL SECURITY;
 
 -- Helper: Get Profile ID
 CREATE OR REPLACE FUNCTION public.get_auth_profile_id()
@@ -27,7 +28,13 @@ DECLARE
   _profile_id bigint;
 BEGIN
   _profile_id := public.get_auth_profile_id();
-  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = _profile_id AND role = 'admin') THEN
+  -- New Logic: Admin is defined by having 'admin' permission in Chapter ID 1
+  IF EXISTS (
+    SELECT 1 FROM public.profile_chapters 
+    WHERE profile_id = _profile_id 
+      AND chapter_id = 1 
+      AND permission_slug = 'admin'
+  ) THEN
     RETURN true;
   END IF;
   RETURN false;
@@ -59,6 +66,31 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Helper: Is specific Chapter Management (Admin, Chair, Manager)
+CREATE OR REPLACE FUNCTION public.is_chapter_management(_chapter_id bigint)
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profile_chapters 
+    WHERE profile_id = public.get_auth_profile_id() 
+      AND chapter_id = _chapter_id 
+      AND permission_slug IN ('admin', 'chair', 'manager')
+  ) OR public.is_admin();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper: Is ANY Chapter Management
+CREATE OR REPLACE FUNCTION public.is_any_chapter_management()
+RETURNS boolean AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profile_chapters 
+    WHERE profile_id = public.get_auth_profile_id() 
+      AND permission_slug IN ('admin', 'chair', 'manager')
+  ) OR public.is_admin();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Helper: Can manage project (Manager, Admin, Chair)
 CREATE OR REPLACE FUNCTION public.can_manage_project(_project_id bigint)
 RETURNS boolean AS $$
@@ -78,11 +110,11 @@ BEGIN
     RETURN true;
   END IF;
 
-  -- 2. Admin/Chair of associated Chapter
+  -- 2. Admin/Chair/Manager of associated Chapter
   IF EXISTS (
     SELECT 1 FROM public.project_chapters pc
     WHERE pc.project_id = _project_id
-      AND public.is_chapter_admin_or_chair(pc.chapter_id)
+      AND public.is_chapter_management(pc.chapter_id)
   ) THEN
     RETURN true;
   END IF;
@@ -210,46 +242,132 @@ FOR UPDATE TO authenticated
 USING (
   id = (SELECT id FROM public.profiles WHERE auth_id = auth.uid()) 
   OR 
-  (SELECT role FROM public.profiles WHERE auth_id = auth.uid()) = 'admin'
+  public.is_admin()
 );
-
 
 -- ====================
 -- 7. PROJECT DATA (projects, project_chapters, project_members)
 -- ====================
 
--- Projects
-CREATE POLICY "Authenticated can view projects" ON public.projects FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Managers can update projects" ON public.projects FOR UPDATE TO authenticated USING (public.can_manage_project(id));
-CREATE POLICY "Managers can insert projects" ON public.projects FOR INSERT TO authenticated WITH CHECK (true); -- Allow creation, ownership logic handles rest
+-- Policies for PROJECTS
+CREATE POLICY "Everyone can view projects" ON public.projects FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Eligible users can create projects" ON public.projects FOR INSERT TO authenticated WITH CHECK (public.is_any_chapter_management());
+CREATE POLICY "Eligible users can manage projects" ON public.projects FOR ALL TO authenticated USING (public.can_manage_project(id));
 
--- project_chapters
-CREATE POLICY "Authenticated view project_chapters" ON public.project_chapters FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Managers edit project_chapters" ON public.project_chapters FOR ALL TO authenticated
-USING (public.can_manage_project(project_id));
+-- Policies for PROJECT_MEMBERS
+CREATE POLICY "Everyone can view project members" ON public.project_members FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Project managers can insert members" ON public.project_members FOR INSERT TO authenticated WITH CHECK (public.can_manage_project(project_id));
+CREATE POLICY "Project managers can update members" ON public.project_members FOR UPDATE TO authenticated USING (public.can_manage_project(project_id));
+CREATE POLICY "Project managers can delete members" ON public.project_members FOR DELETE TO authenticated USING (public.can_manage_project(project_id));
 
--- project_members
-CREATE POLICY "Authenticated view project_members" ON public.project_members FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Managers edit project_members" ON public.project_members FOR ALL TO authenticated
-USING (public.can_manage_project(project_id));
-
-
--- ====================
--- 8. TASKS & ASSIGNEES
--- ====================
-
--- Tasks
-CREATE POLICY "Authenticated can view tasks" ON public.tasks FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Managers can create tasks" ON public.tasks FOR INSERT TO authenticated WITH CHECK (public.can_manage_project(project_id));
-CREATE POLICY "Managers and Assignees can update tasks" ON public.tasks FOR UPDATE TO authenticated USING (public.can_update_task(id, project_id));
-CREATE POLICY "Managers can delete tasks" ON public.tasks FOR DELETE TO authenticated USING (public.can_manage_project(project_id));
-
--- task_assignees (Todos podem ver e editar)
-CREATE POLICY "Everyone manages task_assignees" ON public.task_assignees FOR ALL TO authenticated USING (true);
-
+-- Policies for PROJECT_CHAPTERS
+CREATE POLICY "Everyone can view project chapters" ON public.project_chapters FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Project managers can manage chapters" ON public.project_chapters FOR ALL TO authenticated USING (public.can_manage_project(project_id));
 
 -- ====================
--- 9. TOOLS
+-- 8. TASK DATA (tasks, task_assignees)
 -- ====================
-CREATE POLICY "Everyone views tools" ON public.tools FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admin manages tools" ON public.tools FOR ALL TO authenticated USING (public.is_admin());
+
+-- Policies for TASKS
+CREATE POLICY "Everyone can view tasks" ON public.tasks FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Project managers can create tasks" ON public.tasks FOR INSERT TO authenticated WITH CHECK (public.can_manage_project(project_id));
+CREATE POLICY "Eligible users can update tasks" ON public.tasks FOR UPDATE TO authenticated USING (public.can_update_task(id, project_id));
+CREATE POLICY "Project managers can delete tasks" ON public.tasks FOR DELETE TO authenticated USING (public.can_manage_project(project_id));
+
+-- Policies for TASK_ASSIGNEES
+CREATE POLICY "Everyone can view task assignees" ON public.task_assignees FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Project managers can manage assignees" ON public.task_assignees FOR ALL TO authenticated USING (public.can_manage_project((SELECT project_id FROM public.tasks WHERE id = task_id)));
+
+-- ====================
+-- 10. FINANCES
+-- ====================
+CREATE POLICY "Admin manages all finances" ON public.finances
+FOR ALL TO authenticated
+USING (public.is_admin());
+
+CREATE POLICY "Chapter Chairs manage own finances" ON public.finances
+FOR ALL TO authenticated
+USING (
+  -- Only Chair or Admin of the chapter
+  -- 'manager' was removed to align with frontend route restrictions
+  public.is_chapter_admin_or_chair(chapter_id) 
+);
+
+-- ====================
+-- 11. TRIGGER PARA CRIAÇÃO DE PERFIL AUTOMÁTICO
+-- ====================
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+DECLARE
+  _profile_id bigint;
+BEGIN
+  -- 1. Cria o Perfil
+  INSERT INTO public.profiles (
+    auth_id,
+    email,
+    full_name,
+    role,
+    avatar_initials,
+    phone,
+    matricula,
+    birth_date,
+    membership_number,
+    social_links,
+    course,
+    skills,
+    photo_url,
+    ieee_membership_date,
+    notes,
+    cpf,
+    bio,
+    cover_config
+  )
+  VALUES (
+    new.id,
+    new.email,
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'role',
+    new.raw_user_meta_data->>'avatar_initials',
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'matricula',
+    -- Tratamento de erro para data: se for string vazia ou nula, salva NULL
+    CASE 
+      WHEN new.raw_user_meta_data->>'birth_date' = '' THEN NULL 
+      ELSE (new.raw_user_meta_data->>'birth_date')::date 
+    END,
+    new.raw_user_meta_data->>'membership_number',
+    COALESCE(new.raw_user_meta_data->'social_links', '{}'::jsonb), -- Garante objeto vazio se nulo
+    new.raw_user_meta_data->>'course',
+    -- Garante array vazio se não vier nada
+    ARRAY(SELECT jsonb_array_elements_text(COALESCE(new.raw_user_meta_data->'skills', '[]'::jsonb))), 
+    new.raw_user_meta_data->>'photo_url',
+    new.raw_user_meta_data->>'ieee_membership_date',
+    new.raw_user_meta_data->>'notes',
+    -- Garante array vazio para CPF também
+    ARRAY(SELECT jsonb_array_elements_text(COALESCE(new.raw_user_meta_data->'cpf', '[]'::jsonb))),
+    new.raw_user_meta_data->>'bio'
+  )
+  RETURNING id INTO _profile_id; -- Salva o ID gerado na variável
+
+  -- 2. Cria o Vínculo com os Capítulos (Se houver)
+  -- Formato esperado: chapters: [{ "id": 1, "role": "Voluntário" }]
+  IF (new.raw_user_meta_data->'chapters') IS NOT NULL AND jsonb_array_length(new.raw_user_meta_data->'chapters') > 0 THEN
+    INSERT INTO public.profile_chapters (profile_id, chapter_id, role, permission_slug)
+    SELECT 
+      _profile_id, -- Usa a variável capturada acima (mais seguro e rápido)
+      (idx->>'id')::bigint,
+      idx->>'role',
+      'member' -- Permissão padrão (Definido pelo requisito: membro)
+    FROM jsonb_array_elements(new.raw_user_meta_data->'chapters') as idx
+    WHERE (idx->>'id') IS NOT NULL AND (idx->>'id') != '';
+  END IF;
+
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger definition
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

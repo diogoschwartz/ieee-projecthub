@@ -27,6 +27,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) 
     if (allowedRoles && allowedRoles.length > 0) {
         if (!profile) return <Navigate to="/login" replace />;
 
+        // Global Admin Bypass (New Model: Chapter 1 + Admin Slug)
+        const userChapters = (profile as any).profile_chapters || profile.profileChapters || [];
+        const isGlobalAdmin = userChapters.some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
+
+        if (isGlobalAdmin) {
+            return <Outlet />;
+        }
+
         // Check if user has ANY of the allowed roles in ANY of their chapters
         // We look at the 'permission_slug' in the joined profile_chapters table
         // NOTE: Supabase returns snake_case by default (profile_chapters), but our types might say camelCase.

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -12,21 +12,77 @@ import {
   MessageSquare,
   Filter,
   ChevronDown,
+  ChevronRight,
+  ChevronUp,
   Loader2,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  MapPin,
+  ExternalLink,
+  Video
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { PriorityBadge, getTaskUrl } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { EventDetailsModal } from '../components/EventDetailsModal';
 
 export const MyTasks = () => {
   const navigate = useNavigate();
-  const { tasks, fetchData } = useData();
+  const { tasks, fetchData, events, chapters, projects } = useData();
   const { profile } = useAuth();
   const [filterStatus, setFilterStatus] = useState('all');
+  const [isEventsExpanded, setIsEventsExpanded] = useState(true);
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<any>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  // --- Events Logic ---
+  const myEvents = useMemo(() => {
+    if (!profile) return [];
+
+    const chaptersList = (profile as any).profile_chapters || (profile as any).profileChapters || [];
+    const memberChapterIds = chaptersList.map((pc: any) => pc.chapter_id);
+
+    const projectIds = projects
+      .filter((p: any) => p.projectMembers?.some((pm: any) => pm.profile_id === profile.id))
+      .map((p: any) => p.id);
+
+    const today = new Date();
+    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+
+    const filtered = events.filter((e: any) => {
+      const isMine = e.isPublic ||
+        (e.chapterId && memberChapterIds.includes(e.chapterId)) ||
+        (e.projectId && projectIds.includes(e.projectId));
+
+      if (!isMine) return false;
+
+      const eventStart = new Date(e.startDate);
+      const eventEnd = new Date(e.endDate);
+
+      // Event is "today" if it overlaps with [startOfToday, endOfToday]
+      return eventStart <= endOfToday && eventEnd >= startOfToday;
+    });
+
+    return filtered.sort((a: any) => new Date(a.startDate).getTime());
+  }, [events, profile, projects]);
+
+  const handleEventClick = (evt: any) => {
+    // Map to RBC format for the modal
+    setSelectedEventForDetails({
+      id: evt.id,
+      title: evt.title,
+      start: new Date(evt.startDate),
+      end: new Date(evt.endDate),
+      resource: {
+        ...evt,
+        chapter: chapters.find(c => c.id === evt.chapterId)
+      }
+    });
+    setIsDetailsModalOpen(true);
+  };
 
   // Status Dropdown State
   const [openStatusMenuId, setOpenStatusMenuId] = useState<number | null>(null);
@@ -279,6 +335,130 @@ export const MyTasks = () => {
           <span className="font-bold text-gray-900">{stats.done}/{stats.total}</span> Concluídas
         </div>
       </div>
+
+      {/* Upcoming Events Section */}
+      {myEvents.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <button
+            onClick={() => setIsEventsExpanded(!isEventsExpanded)}
+            className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 shadow-sm">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-base font-bold text-gray-900 leading-none">Eventos de Hoje</h2>
+                <p className="text-[10px] text-gray-500 mt-1 uppercase tracking-wider font-semibold">
+                  {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate('/calendar'); }}
+                className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors bg-blue-50/50 px-3 py-1.5 rounded-lg"
+              >
+                Calendário <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+              <div className="flex items-center gap-3">
+                <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {myEvents.length} {myEvents.length === 1 ? 'evento' : 'eventos'}
+                </span>
+                {isEventsExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+              </div>
+            </div>
+          </button>
+
+          {isEventsExpanded && (
+            <div className="px-4 pb-4 animate-in slide-in-from-top-2 duration-200">
+              <div className="space-y-3">
+                {myEvents.map((event: any) => {
+                  const chapter = chapters.find((c: any) => c.id === event.chapterId);
+                  const project = projects.find((p: any) => p.id === event.projectId);
+                  const startDate = new Date(event.startDate);
+                  const meetingUrl = event.location && (event.location.startsWith('http') || event.location.includes('zoom') || event.location.includes('meet.google')) ? event.location : null;
+
+                  return (
+                    <div
+                      key={event.id}
+                      className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-all group flex flex-col md:flex-row md:items-center gap-4 relative overflow-hidden"
+                    >
+                      {/* Chapter/Project Stripe */}
+                      <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${chapter?.cor ? `bg-gradient-to-b ${chapter.cor}` : (project ? 'bg-purple-500' : 'bg-blue-500')}`}></div>
+
+                      {/* Main Content */}
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer pl-2"
+                        onClick={() => handleEventClick(event)}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                            {event.title}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-xs text-gray-500">
+                          {chapter && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100 font-medium whitespace-nowrap">
+                              <Briefcase className="w-3 h-3" />
+                              {chapter.sigla}
+                            </span>
+                          )}
+                          {project && !chapter && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100 font-medium whitespace-nowrap">
+                              <Briefcase className="w-3 h-3" />
+                              {project.nome}
+                            </span>
+                          )}
+                          {!chapter && !project && event.isPublic && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-50 border border-gray-100 font-medium whitespace-nowrap">
+                              Agenda Geral
+                            </span>
+                          )}
+
+                          <div className="flex items-center gap-2 ml-auto md:ml-0 font-medium text-blue-600 bg-blue-50/50 px-2 py-0.5 rounded-md">
+                            <Calendar className="w-3 h-3" />
+                            {startDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto pl-2 md:pl-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-50">
+                        {meetingUrl && (
+                          <a
+                            href={meetingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 hover:bg-green-100 rounded-lg border border-green-100 font-bold text-xs transition-all shadow-sm whitespace-nowrap"
+                          >
+                            <Video className="w-3.5 h-3.5" />
+                            Acessar Reunião
+                          </a>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleEventClick(event); }}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg border border-gray-100 font-bold text-xs transition-all shadow-sm whitespace-nowrap"
+                        >
+                          Ver Detalhes
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <EventDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        event={selectedEventForDetails}
+      />
 
       {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

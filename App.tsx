@@ -30,6 +30,7 @@ import { ProjectManagerPage } from './pages/admin/ProjectManagerPage';
 import { ChapterChairPage } from './pages/admin/ChapterChairPage';
 import { PresidentPage } from './pages/admin/PresidentPage';
 import { VToolsReportPage } from './pages/admin/VToolsReportPage';
+import { FinancialPage } from './pages/admin/FinancialPage';
 
 const AppLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -191,12 +192,22 @@ const AppLayout = () => {
             <Route path="/classifieds" element={<ClassifiedsPage />} />
 
             {/* Rotas Administrativas - Protegidas */}
+            {/* 1. Rotas para Todos os Níveis de Gestão (Manager, Chair, Admin) */}
             <Route element={<ProtectedRoute allowedRoles={['admin', 'chair', 'manager']} />}>
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/project-manager" element={<ProjectManagerPage />} />
-              <Route path="/admin/chapter-chair" element={<ChapterChairPage />} />
-              <Route path="/admin/president" element={<PresidentPage />} />
               <Route path="/admin/vtools-report" element={<VToolsReportPage />} />
+            </Route>
+
+            {/* 2. Rotas para Liderança do Capítulo (Chair, Admin) - Manager não entra mais aqui */}
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'chair']} />}>
+              <Route path="/admin/chapter-chair" element={<ChapterChairPage />} />
+              <Route path="/admin/financial" element={<FinancialPage />} />
+            </Route>
+
+            {/* 3. Rotas Exclusivas da Presidência Global (Apenas Admin) */}
+            <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+              <Route path="/admin/president" element={<PresidentPage />} />
             </Route>
           </Routes>
         </main>

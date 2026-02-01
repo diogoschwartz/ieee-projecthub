@@ -46,7 +46,8 @@ export const ClassifiedsPage = () => {
 
    const isOwnerOrAdmin = (item: any) => {
       if (!profile) return false;
-      return profile.role === 'admin' || item.responsible_id === profile.id;
+      const isAdmin = ((profile as any).profile_chapters || (profile as any).profileChapters || []).some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
+      return isAdmin || item.responsible_id === profile.id;
    };
 
    // Função para verificar se é destaque (Capítulo Ramo)

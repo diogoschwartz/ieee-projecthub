@@ -28,7 +28,11 @@ export const NewClassifiedModal = ({ isOpen, onClose, classifiedToEdit }: NewCla
   });
 
   const [newOfferText, setNewOfferText] = useState('');
-  const isOwnerOrAdmin = profile?.role === 'admin' || (classifiedToEdit && classifiedToEdit.responsible_id === profile?.id);
+
+  const chaptersList = (profile as any)?.profile_chapters || (profile as any)?.profileChapters || [];
+  const isAdmin = chaptersList.some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
+  const isOwnerOrAdmin = isAdmin || (classifiedToEdit && classifiedToEdit.responsible_id === profile?.id);
+
   const isEditingAnotherUser = classifiedToEdit && !isOwnerOrAdmin;
 
   // States para lógica de seleção

@@ -1,9 +1,19 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+    --color-primary: #2563eb;
+    --color-secondary: #4f46e5;
+    --color-paper: #f9f7f1;
+    --font-newspaper: "Playfair Display", serif;
+}
 
 :root {
     color-scheme: light;
     /* Força o navegador a renderizar controles e scrollbars em modo claro */
 }
+
+
 
 body {
     font-family: 'Inter', sans-serif;

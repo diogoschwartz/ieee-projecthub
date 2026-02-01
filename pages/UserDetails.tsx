@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Mail, 
-  Calendar, 
-  GraduationCap, 
-  Briefcase, 
-  BadgeCheck, 
+import {
+  ArrowLeft,
+  Mail,
+  Calendar,
+  GraduationCap,
+  Briefcase,
+  BadgeCheck,
   Award,
   Linkedin,
   Github,
@@ -29,7 +29,7 @@ export const UserDetails = () => {
   }
 
   // Get user chapters
-  const userChapters = user.chapterIds && user.chapterIds.length > 0 
+  const userChapters = user.chapterIds && user.chapterIds.length > 0
     ? chapters.filter((c: any) => user.chapterIds.includes(c.id))
     : [];
 
@@ -56,28 +56,28 @@ export const UserDetails = () => {
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="h-32 relative">
-               {renderCover()}
-               <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
-                  {userChapters.map((chap: any) => {
-                    const role = user.chapterRoles?.[chap.id];
-                    return (
-                      <div key={chap.id} className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm flex items-center gap-2">
-                        <span className="text-gray-900 text-xs font-bold tracking-wide">{chap.sigla}</span>
-                        {role && <span className="text-[10px] text-gray-600 border-l border-gray-300 pl-2">{role}</span>}
-                      </div>
-                    );
-                  })}
-               </div>
+              {renderCover()}
+              <div className="absolute top-4 right-4 flex flex-col gap-1 items-end">
+                {userChapters.map((chap: any) => {
+                  const role = user.chapterRoles?.[chap.id];
+                  return (
+                    <div key={chap.id} className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm flex items-center gap-2">
+                      <span className="text-gray-900 text-xs font-bold tracking-wide">{chap.sigla}</span>
+                      {role && <span className="text-[10px] text-gray-600 border-l border-gray-300 pl-2">{role}</span>}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
             <div className="px-6 pb-6 relative">
               <div className="w-32 h-32 rounded-2xl bg-white p-1.5 shadow-lg absolute -top-16 left-1/2 -translate-x-1/2">
-                <img 
-                  src={user.foto} 
-                  alt={user.nome} 
+                <img
+                  src={user.foto}
+                  alt={user.nome}
                   className="w-full h-full object-cover rounded-xl bg-gray-100"
                 />
               </div>
-              
+
               <div className="pt-20 text-center">
                 <h1 className="text-2xl font-bold text-gray-900">{user.nome}</h1>
                 <p className="text-blue-600 font-medium flex items-center justify-center gap-1.5 mt-1">
@@ -101,7 +101,7 @@ export const UserDetails = () => {
                       <Instagram className="w-5 h-5" />
                     </a>
                   )}
-                   <a href={`mailto:${user.email}`} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <a href={`mailto:${user.email}`} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
                     <Mail className="w-5 h-5" />
                   </a>
                 </div>
@@ -110,47 +110,59 @@ export const UserDetails = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-               <Briefcase className="w-5 h-5 text-gray-400" />
-               Informações
-             </h3>
-             <div className="space-y-4 text-sm">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="truncate" title={user.email}>{user.email}</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-600">
-                  <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>Matrícula: {user.matricula}</span>
-                </div>
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Briefcase className="w-5 h-5 text-gray-400" />
+              Informações
+            </h3>
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-3 text-gray-600">
+                <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span className="truncate" title={user.email}>{user.email}</span>
+              </div>
+              <div className="flex items-center gap-3 text-gray-600">
+                <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span>Matrícula: {user.matricula}</span>
+              </div>
+              {/* NOVO: Curso */}
+              <div className="flex items-center gap-3 text-gray-600">
+                <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span>{user.course || 'Curso não informado'}</span>
+              </div>
+              <div className="flex items-center gap-3 text-gray-600">
+                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <span>Nasc: {new Date(user.dataNascimento).toLocaleDateString('pt-BR')}</span>
+              </div>
+              {/* NOVO: Data Entrada IEEE */}
+              {user.ieee_membership_date && (
                 <div className="flex items-center gap-3 text-gray-600">
                   <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>Nasc: {new Date(user.dataNascimento).toLocaleDateString('pt-BR')}</span>
+                  <span>Membro IEEE desde: {user.ieee_membership_date}</span>
                 </div>
-                {user.nroMembresia && (
-                   <div className="flex items-center gap-3 text-gray-600">
-                      <Hash className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                      <span>Membresia: {user.nroMembresia}</span>
-                   </div>
-                )}
-             </div>
+              )}
+              {user.nroMembresia && (
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Hash className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                  <span>Membresia: {user.nroMembresia}</span>
+                </div>
+              )}
+            </div>
 
-             <div className="border-t border-gray-100 mt-6 pt-6">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Award className="w-5 h-5 text-gray-400" />
-                  Habilidades
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {user.habilidades.map((skill: string) => (
-                    <span 
-                      key={skill} 
-                      className="px-3 py-1 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium border border-gray-200"
-                    >
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-             </div>
+            <div className="border-t border-gray-100 mt-6 pt-6">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Award className="w-5 h-5 text-gray-400" />
+                Habilidades
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {user.habilidades.map((skill: string) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1 bg-gray-50 text-gray-700 rounded-lg text-xs font-medium border border-gray-200"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 

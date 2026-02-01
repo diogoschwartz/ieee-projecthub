@@ -411,6 +411,7 @@ export const ProjectDetails = () => {
     return found ? found.label : status;
   };
 
+
   return (
     <div className="space-y-4 md:space-y-6 pb-20">
       <NewTaskModal
@@ -423,6 +424,7 @@ export const ProjectDetails = () => {
         isOpen={showEditProjectModal}
         onClose={() => setShowEditProjectModal(false)}
         projectToEdit={projeto}
+        tasks={tarefasDoProjeto}
       />
 
       <EventDetailsModal
@@ -433,7 +435,7 @@ export const ProjectDetails = () => {
       />
 
       {/* Header do Projeto */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative">
         <div className="p-4 md:p-6">
           <button
             onClick={() => {
@@ -448,6 +450,7 @@ export const ProjectDetails = () => {
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium">Voltar</span>
           </button>
+
 
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="flex-1">

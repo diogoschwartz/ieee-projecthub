@@ -47,7 +47,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         classifiedsRes, goalsRes, toolsRes, permsRes,
         profCapsRes, projMemsRes, projCapsRes, taskAssignsRes
       ] = await Promise.all([
-        supabase.from('chapters').select('*'),
+        supabase.from('chapters').select('*').order('id', { ascending: true }),
         supabase.from('profiles').select('*'),
         supabase.from('projects').select('*'),
         supabase.from('tasks').select('*'),
@@ -95,7 +95,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         projects_count: c.projects_count,
         // Legacy Compatibility
         nome: c.name,
-        sigla: c.acronym
+        sigla: c.acronym,
+        cor: c.color_theme,
+        descricao: c.description
       }));
 
       // 2. Process Permissions
@@ -121,6 +123,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           membership_number: u.membership_number,
           cover_config: u.cover_config,
           social_links: u.social_links || { linkedin: '', github: '', instagram: '' },
+          // New Fields
+          cpf: u.cpf || [], // Ensure array
+          phone: u.phone,
+          ieee_membership_date: u.ieee_membership_date,
+          course: u.course,
+          fcm_token: u.fcm_token,
           // Hydrated
           chapters: userChapters,
           profileChapters: userChapRels,
@@ -222,6 +230,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           attachments_count: t.attachments_count,
           content_url: t.content_url,
           project_id: t.project_id,
+          created_at: t.created_at,
 
           // Hydrated
           project: proj,
@@ -241,7 +250,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           responsavelIds: assignees.map(a => a.id),
           responsavel: firstAssignee ? firstAssignee.full_name.split(' ')[0] : 'N/A',
           responsavelFull: firstAssignee || null,
-          capitulo: proj ? (proj as any).capitulo : 'N/A' // Accessing legacy prop
+          capitulo: proj ? (proj as any).capitulo : 'N/A', // Accessing legacy prop
+          reimbursement_status: t.reimbursement_status // Map new field
         };
       });
 
@@ -251,7 +261,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startDate: e.start_date,
         endDate: e.end_date,
         subCategory: e.sub_category,
-        eventType: e.event_type || 'InPerson',
+        eventType: e.event_type || 'Virtual',
         hostOus: e.host_ous || [],
         isPublic: e.is_public,
         vtoolsReported: e.vtools_reported,

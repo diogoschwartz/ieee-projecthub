@@ -1,15 +1,19 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, FolderKanban, Briefcase, Loader2, Save, Users, Check, Palette, Image, ChevronDown, User, Plus, Search, Trash2 } from 'lucide-react';
+import { X, FolderKanban, Briefcase, Loader2, Save, Users, Check, Palette, Image, ChevronDown, User, Plus, Search, Trash2, Download, FileJson, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
 import { UserAvatar, generatePublicId } from '../lib/utils';
+import { pdf } from '@react-pdf/renderer';
+import { ProjectReportPDF } from './ProjectReportPDF';
+import { useGlobalAlert } from './GlobalAlert';
 
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   projectToEdit?: any; // Propcional para edição
   initialChapterId?: number;
+  tasks?: any[]; // Tarefas para o relatório
 }
 
 // Lista de cores do Tailwind para o seletor
@@ -21,8 +25,9 @@ const TW_COLORS = [
   'pink', 'rose'
 ];
 
-export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapterId }: NewProjectModalProps) => {
+export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapterId, tasks = [] }: NewProjectModalProps) => {
   const { chapters, users, fetchData } = useData();
+  const { showAlert } = useGlobalAlert();
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -53,6 +58,10 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
   const teamSearchRef = useRef<HTMLDivElement>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
   const [chapterSearchQuery, setChapterSearchQuery] = useState('');
   const [showChapterDropdown, setShowChapterDropdown] = useState(false);
   const chapterDropdownRef = useRef<HTMLDivElement>(null);
@@ -64,6 +73,11 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
     to: 'indigo'
   });
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Team Change Confirmation State
+  const [showConfirmTeamChange, setShowConfirmTeamChange] = useState(false);
+  const initialOwnersRef = useRef<number[]>([]);
+  const initialTeamRef = useRef<number[]>([]);
 
   // Initialize form
   useEffect(() => {
@@ -88,6 +102,10 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
         // Populate Team Arrays
         setOwnerIds(projectToEdit.ownerIds || []);
         setTeamIds(projectToEdit.teamIds || []);
+
+        // Track Initial Team State for confirmation
+        initialOwnersRef.current = projectToEdit.ownerIds || [];
+        initialTeamRef.current = projectToEdit.teamIds || [];
 
         // Extract Colors
         if (projectToEdit.cor) {
@@ -142,6 +160,9 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
       if (teamSearchRef.current && !teamSearchRef.current.contains(event.target as Node)) {
         setShowTeamSuggestions(false);
       }
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -153,17 +174,92 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
     setShowGradientPicker(false);
   };
 
+  const handleExportJSON = async () => {
+    if (!projectToEdit) return;
+    setIsExporting(true);
+    try {
+      const dataToExport = {
+        project: projectToEdit,
+        tasks: tasks,
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          version: '1.0'
+        }
+      };
+
+      const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = projectToEdit.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 50);
+      a.download = `relatorio-${safeName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 150);
+    } catch (error) {
+      console.error("Erro no export JSON", error);
+      showAlert("Erro na Exportação", "Falha ao gerar o arquivo JSON.", "error");
+    } finally {
+      setIsExporting(false);
+      setShowExportMenu(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!projectToEdit) return;
+    setIsExporting(true);
+    try {
+      const blob = await pdf(<ProjectReportPDF project={projectToEdit} tasks={tasks} users={users} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeName = projectToEdit.nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 50);
+      a.download = `relatorio-${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 150);
+    } catch (error) {
+      console.error("Erro no export PDF", error);
+      showAlert("Erro na Exportação", "Falha ao gerar o arquivo PDF.", "error");
+    } finally {
+      setIsExporting(false);
+      setShowExportMenu(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
     if (formData.chapterIds.length === 0) {
       alert("Selecione pelo menos um capítulo.");
-      setIsSubmitting(false);
       return;
     }
+
+    // Check for team changes in Edit mode
+    if (projectToEdit && !showConfirmTeamChange) {
+      const ownersChanged = JSON.stringify([...ownerIds].sort()) !== JSON.stringify([...initialOwnersRef.current].sort());
+      const teamChanged = JSON.stringify([...teamIds].sort()) !== JSON.stringify([...initialTeamRef.current].sort());
+
+      if (ownersChanged || teamChanged) {
+        setShowConfirmTeamChange(true);
+        return;
+      }
+    }
+
+    await handleSave();
+  };
+
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    setShowConfirmTeamChange(false);
 
     // 1. Prepare Project Payload (Clean, no array columns)
     const projectPayload: any = {
@@ -206,25 +302,32 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
         projectId = data.id;
       }
 
-      // 2. Handle Relations (Delete All & Re-insert Strategy for simplicity)
+      // 2. Handle Relations (Upsert then Cleanup Strategy to preserve RLS permissions)
 
       // A. Chapter Relations
-      // Clear existing
-      await supabase.from('project_chapters').delete().eq('project_id', projectId);
-      // Insert new
       if (formData.chapterIds.length > 0) {
         const chapterInserts = formData.chapterIds.map(cid => ({
           project_id: projectId,
           chapter_id: cid
         }));
-        const { error: chapErr } = await supabase.from('project_chapters').insert(chapterInserts);
-        if (chapErr) console.error("Error saving chapters:", chapErr);
+
+        // Upsert new list
+        const { error: upsertChapErr } = await supabase.from('project_chapters').upsert(chapterInserts, { onConflict: 'project_id, chapter_id' });
+        if (upsertChapErr) throw upsertChapErr;
+
+        // Delete removed ones
+        const { error: delChapErr } = await supabase
+          .from('project_chapters')
+          .delete()
+          .eq('project_id', projectId)
+          .not('chapter_id', 'in', `(${formData.chapterIds.join(',')})`);
+        if (delChapErr) console.error("Error cleaning up chapters:", delChapErr);
+      } else {
+        // If empty (shoudn't happen due to validation), just clear
+        await supabase.from('project_chapters').delete().eq('project_id', projectId);
       }
 
       // B. Members Relations (Owners & Team)
-      // Clear existing
-      await supabase.from('project_members').delete().eq('project_id', projectId);
-
       const memberInserts = [];
       // Owners
       for (const oid of ownerIds) {
@@ -234,9 +337,8 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
           is_owner: true
         });
       }
-      // Team (avoid duplicates if someone is both owner and team in UI state, though logic usually separates)
+      // Team (avoid duplicates)
       for (const tid of teamIds) {
-        // Check if already added as owner
         if (!ownerIds.includes(tid)) {
           memberInserts.push({
             project_id: projectId,
@@ -247,8 +349,21 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
       }
 
       if (memberInserts.length > 0) {
-        const { error: memErr } = await supabase.from('project_members').insert(memberInserts);
-        if (memErr) console.error("Error saving members:", memErr);
+        // Upsert new list
+        const { error: upsertMemErr } = await supabase.from('project_members').upsert(memberInserts, { onConflict: 'project_id, profile_id' });
+        if (upsertMemErr) throw upsertMemErr;
+
+        // Delete removed ones
+        const newUserIds = memberInserts.map(m => m.profile_id);
+        const { error: delMemErr } = await supabase
+          .from('project_members')
+          .delete()
+          .eq('project_id', projectId)
+          .not('profile_id', 'in', `(${newUserIds.join(',')})`);
+        if (delMemErr) console.error("Error cleaning up members:", delMemErr);
+      } else {
+        // Just clear
+        await supabase.from('project_members').delete().eq('project_id', projectId);
       }
 
       await fetchData(true);
@@ -349,12 +464,51 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
               {projectToEdit ? 'Atualize as informações principais do projeto' : 'Inicie uma nova iniciativa para o capítulo'}
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {projectToEdit && (
+              <div className="relative" ref={exportMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium transition-all shadow-sm"
+                >
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  Relatório
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showExportMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-100 shadow-xl rounded-xl overflow-hidden z-50">
+                    <div className="p-1">
+                      <button
+                        type="button"
+                        onClick={handleExportPDF}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600 rounded-lg transition-colors text-left"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Baixar PDF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportJSON}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-purple-600 rounded-lg transition-colors text-left"
+                      >
+                        <FileJson className="w-4 h-4" />
+                        Baixar JSON
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 rounded-full transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
@@ -753,6 +907,39 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
           </div>
         </form>
       </div>
+
+      {/* Team Change Confirmation Overlay */}
+      {showConfirmTeamChange && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 text-center border border-gray-100 transform animate-in zoom-in-95 duration-200">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users className="w-10 h-10 text-amber-600" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 mb-3">Confirmar Alteração</h3>
+            <p className="text-gray-600 mb-8 leading-relaxed">
+              Você está modificando os <strong>membros da equipe ou gerência</strong> deste projeto. Deseja aplicar estas mudanças?
+            </p>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSubmitting}
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                Confirmar e Salvar
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConfirmTeamChange(false)}
+                className="w-full py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold rounded-2xl transition-all"
+              >
+                Voltar e Revisar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

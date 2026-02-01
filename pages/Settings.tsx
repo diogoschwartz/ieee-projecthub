@@ -56,7 +56,7 @@ export const Settings = () => {
    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
    const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
 
-   const isAdmin = profile?.role === 'admin';
+   const isAdmin = ((profile as any).profile_chapters || (profile as any).profileChapters || []).some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
 
    // Markdown Preview State
    const [showBioPreview, setShowBioPreview] = useState(false);
@@ -71,7 +71,11 @@ export const Settings = () => {
       coverConfig: '',
       bio: '',
       social: { linkedin: '', github: '', instagram: '' },
-      habilidades: [] as string[]
+      habilidades: [] as string[],
+      phone: '',
+      cpf: '',
+      ieeeMembershipDate: '',
+      course: ''
    });
 
    const [newSkill, setNewSkill] = useState('');
@@ -111,7 +115,11 @@ export const Settings = () => {
                   github: user.social?.github || '',
                   instagram: user.social?.instagram || ''
                },
-               habilidades: user.habilidades || []
+               habilidades: user.habilidades || [],
+               phone: user.phone || '',
+               cpf: (user.cpf && user.cpf.length > 0) ? user.cpf[0] : '',
+               ieeeMembershipDate: user.ieee_membership_date || '',
+               course: user.course || ''
             });
          }
       }
@@ -149,7 +157,11 @@ export const Settings = () => {
                cover_config: formData.coverConfig,
                bio: formData.bio,
                skills: formData.habilidades,
-               social_links: formData.social
+               social_links: formData.social,
+               phone: formData.phone,
+               cpf: formData.cpf ? [formData.cpf] : [],
+               ieee_membership_date: formData.ieeeMembershipDate,
+               course: formData.course
             })
             .eq('id', selectedUserId);
 
@@ -305,6 +317,33 @@ export const Settings = () => {
                               onChange={e => setFormData({ ...formData, matricula: e.target.value })}
                            />
                         </div>
+
+                        {/* NOVOS CAMPOS */}
+                        <div className="space-y-1.5">
+                           <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                              <GraduationCap className="w-3.5 h-3.5" /> Curso
+                           </label>
+                           <input
+                              type="text"
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                              placeholder="Ex: Engenharia Elétrica"
+                              value={formData.course}
+                              onChange={e => setFormData({ ...formData, course: e.target.value })}
+                           />
+                        </div>
+                        <div className="space-y-1.5">
+                           <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5" /> Telefone
+                           </label>
+                           <input
+                              type="text"
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                              placeholder="(00) 00000-0000"
+                              value={formData.phone}
+                              onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                           />
+                        </div>
+
                         <div className="space-y-1.5">
                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                               <BadgeCheck className="w-3.5 h-3.5" /> Nº Membresia IEEE
@@ -317,6 +356,20 @@ export const Settings = () => {
                               onChange={e => setFormData({ ...formData, nroMembresia: e.target.value })}
                            />
                         </div>
+                        {/* NOVO */}
+                        <div className="space-y-1.5">
+                           <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" /> Entrada IEEE (Mês/Ano)
+                           </label>
+                           <input
+                              type="text"
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                              placeholder="Ex: 03/2023"
+                              value={formData.ieeeMembershipDate}
+                              onChange={e => setFormData({ ...formData, ieeeMembershipDate: e.target.value })}
+                           />
+                        </div>
+
                         <div className="space-y-1.5">
                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                               <Calendar className="w-3.5 h-3.5" /> Data de Nascimento
@@ -326,6 +379,19 @@ export const Settings = () => {
                               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                               value={formData.dataNascimento}
                               onChange={e => setFormData({ ...formData, dataNascimento: e.target.value })}
+                           />
+                        </div>
+                        {/* NOVO */}
+                        <div className="space-y-1.5">
+                           <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                              <User className="w-3.5 h-3.5" /> CPF (Somente Admin/Próprio)
+                           </label>
+                           <input
+                              type="text"
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+                              placeholder="000.000.000-00"
+                              value={formData.cpf}
+                              onChange={e => setFormData({ ...formData, cpf: e.target.value })}
                            />
                         </div>
                      </div>

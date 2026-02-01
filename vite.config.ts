@@ -19,6 +19,9 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       registerType: 'autoUpdate',
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4MB
+      },
       includeAssets: ['assets/android-launchericon-192-192.png', 'assets/android-launchericon-512-512.png'],
       manifest: {
         name: 'ConectaIEEE',

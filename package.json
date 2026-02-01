@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.3.2",
     "@supabase/supabase-js": "2.39.3",
     "date-fns": "2.30.0",
     "firebase": "^12.8.0",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^22.14.0",
     "@types/react": "^19.2.10",
     "@vitejs/plugin-react": "^5.0.0",

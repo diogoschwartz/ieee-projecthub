@@ -53,6 +53,11 @@ export interface Profile {
   membership_number?: string;
   cover_config?: string;
   social_links?: any;
+  phone?: string;
+  cpf?: string[];
+  ieee_membership_date?: string; // Mês/Ano
+  course?: string;
+  notes?: string;
   fcm_token?: string;
   // Hydrated
   chapters?: Chapter[];
@@ -151,6 +156,7 @@ export interface Task {
   attachments_count: number;
   content_url?: string;
   project_id: number;
+  created_at?: string;
   // Hydrated
   project?: Project;
   assignees: Profile[];
@@ -170,6 +176,7 @@ export interface Task {
   responsavel?: string;
   responsavelFull?: Profile | null;
   capitulo?: string;
+  reimbursement_status?: 'not_required' | 'requested_section' | 'requested_external' | 'paid';
 }
 
 export interface TaskAssignee {
@@ -214,4 +221,24 @@ export interface Event {
   attendeeList?: any[];
   chapterId?: number;
   projectId?: number;
+}
+
+export interface Finance {
+  id: number;
+  type: 'entry' | 'exit';
+  description: string;
+  amount: number;
+  currency: 'BRL' | 'USD';
+  date: string;
+  invoice_url?: string;
+  notes?: string;
+  chapter_id?: number;
+  project_id?: number;
+  created_by?: string;
+  created_at?: string;
+  reimbursement_status?: 'not_required' | 'requested_section' | 'requested_external' | 'paid';
+  // Hydrated
+  chapter?: Chapter;
+  project?: Project;
+  created_by_user?: Profile;
 }
