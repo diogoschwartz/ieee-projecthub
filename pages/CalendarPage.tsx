@@ -272,17 +272,6 @@ export const CalendarPage = () => {
   return (
     <div className="space-y-6 relative pb-20">
 
-      {/* DEBUG PERMISSIONS BANNER */}
-      <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-lg text-xs font-mono mb-2 shadow-sm">
-        <p className="font-bold border-b border-yellow-200 pb-1 mb-1">🔧 Debug de Permissões (Modo de Teste):</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
-          <span>👑 Admin Global: <strong>{userRoles.isAdmin ? 'SIM' : 'NÃO'}</strong> (Role: {profile?.role || 'null'})</span>
-          <span>💼 Manager/Chair em: <strong>{userRoles.managerChapters.length > 0 ? userRoles.managerChapters.join(', ') : 'Nenhum'}</strong></span>
-          <span>👤 Membro em: <strong>{userRoles.memberChapters.length > 0 ? userRoles.memberChapters.join(', ') : 'Nenhum'}</strong></span>
-          <span>🚀 Projetos: <strong>{userRoles.projectIds.length > 0 ? userRoles.projectIds.join(', ') : 'Nenhum'}</strong></span>
-        </div>
-      </div>
-
       {/* Modals */}
       {canCreateEvent && (
         <NewEventModal

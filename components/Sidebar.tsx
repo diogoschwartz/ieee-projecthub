@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export const Sidebar = ({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobileMenuOpen }: any) => {
   const location = useLocation();
+  const { signOut, profile } = useAuth();
 
   const menuItems = [
     { id: '/', icon: Home, label: 'Início' },
@@ -94,7 +95,6 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobile
           {/* Divisória e Funções Administrativas */}
           {/* Divisória e Funções Administrativas */}
           {(function () {
-            const { profile } = useAuth();
             const chapters = (profile as any)?.profile_chapters || profile?.profileChapters || [];
             const userRoles = chapters?.map((pc: any) => pc.permission_slug) || [];
             const canAccessAdmin = userRoles.some((role: string) => ['admin', 'chair', 'manager'].includes(role));
@@ -127,7 +127,13 @@ export const Sidebar = ({ sidebarOpen, setSidebarOpen, mobileMenuOpen, setMobile
             <Settings className="w-5 h-5 flex-shrink-0" />
             {(sidebarOpen || mobileMenuOpen) && <span className="font-medium">Configurações</span>}
           </NavLink>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-white">
+          <button
+            onClick={async () => {
+              await signOut();
+              setMobileMenuOpen(false);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-white"
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {(sidebarOpen || mobileMenuOpen) && <span className="font-medium">Sair</span>}
           </button>
