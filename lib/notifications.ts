@@ -4,6 +4,10 @@ import { supabase } from './supabase';
 
 export const requestNotificationPermission = async (userId: string | number) => {
     try {
+        if (typeof Notification === 'undefined') {
+            console.warn('Notifications not supported in this browser.');
+            return null;
+        }
         const permission = await Notification.requestPermission();
 
         if (permission === 'granted') {

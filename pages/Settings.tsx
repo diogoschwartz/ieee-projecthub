@@ -54,7 +54,7 @@ export const Settings = () => {
    });
    const pickerRef = useRef<HTMLDivElement>(null);
    const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
-   const [permissionStatus, setPermissionStatus] = useState(Notification.permission);
+   const [permissionStatus, setPermissionStatus] = useState(typeof Notification !== 'undefined' ? Notification.permission : 'denied');
 
    const isAdmin = ((profile as any).profile_chapters || (profile as any).profileChapters || []).some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
 

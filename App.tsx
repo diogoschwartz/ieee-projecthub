@@ -47,7 +47,7 @@ const AppLayout = () => {
     if (profile && !loading) {
       // 1. User has no FCM token saved
       // 2. Permission is 'default' (browser hasn't asked yet)
-      if (!profile.fcm_token && Notification.permission === 'default') {
+      if (!profile.fcm_token && typeof Notification !== 'undefined' && Notification.permission === 'default') {
         // Only show on mobile devices AND if installed as PWA (standalone)
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
