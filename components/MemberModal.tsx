@@ -22,6 +22,13 @@ const ROLES = [
   'Trainee'
 ];
 
+const PERMISSIONS = [
+  { slug: 'member', label: 'Membro' },
+  { slug: 'manager', label: 'Gerente' },
+  { slug: 'chair', label: 'Chair/Líder' },
+  { slug: 'admin', label: 'Admin' }
+];
+
 export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps) => {
   const { chapters, fetchData } = useData();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,7 +40,8 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
     matricula: '',
     role: 'Membro', // Cargo principal / Título
     chapterIds: [] as number[],
-    chapterRoles: {} as Record<string, string> // Mapa { chapterId: role }
+    chapterRoles: {} as Record<string, string>, // Mapa { chapterId: role }
+    chapterPermissions: {} as Record<string, string> // Mapa { chapterId: permission_slug }
   });
 
   // Dropdown UI State
@@ -49,7 +57,10 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
           matricula: memberToEdit.matricula === 'N/D' ? '' : memberToEdit.matricula,
           role: memberToEdit.role || 'Membro',
           chapterIds: memberToEdit.chapterIds || [],
-          chapterRoles: memberToEdit.chapterRoles || {}
+          chapterRoles: memberToEdit.chapterRoles || {},
+          chapterPermissions: memberToEdit.profileChapters
+            ? memberToEdit.profileChapters.reduce((acc: any, curr: any) => ({ ...acc, [curr.chapter_id]: curr.permission_slug }), {})
+            : {}
         });
       } else {
         setFormData({
@@ -58,7 +69,8 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
           matricula: '',
           role: 'Membro',
           chapterIds: [],
-          chapterRoles: {}
+          chapterRoles: {},
+          chapterPermissions: {}
         });
       }
     }
@@ -134,7 +146,7 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
         profile_id: profileId,
         chapter_id: cid,
         role: formData.chapterRoles[cid] || 'Membro',
-        permission_slug: 'member' // Default permission for now
+        permission_slug: formData.chapterPermissions[cid] || 'member'
       }));
 
       if (chapterInserts.length > 0) {
@@ -161,7 +173,8 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
       return {
         ...prev,
         chapterIds: [...prev.chapterIds, id],
-        chapterRoles: { ...prev.chapterRoles, [id]: 'Membro' }
+        chapterRoles: { ...prev.chapterRoles, [id]: 'Membro' },
+        chapterPermissions: { ...prev.chapterPermissions, [id]: 'member' }
       };
     });
     setShowChapterDropdown(false);
@@ -183,6 +196,13 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
     setFormData(prev => ({
       ...prev,
       chapterRoles: { ...prev.chapterRoles, [chapterId]: newRole }
+    }));
+  };
+
+  const handleChangePermission = (chapterId: number, newPermission: string) => {
+    setFormData(prev => ({
+      ...prev,
+      chapterPermissions: { ...prev.chapterPermissions, [chapterId]: newPermission }
     }));
   };
 
@@ -339,6 +359,22 @@ export const MemberModal = ({ isOpen, onClose, memberToEdit }: MemberModalProps)
                             <option key={role} value={role}>{role}</option>
                           ))}
                         </select>
+
+                        {/* Permission Selector */}
+                        <div title="Nível de Permissão">
+                          <select
+                            value={formData.chapterPermissions[id] || 'member'}
+                            onChange={(e) => handleChangePermission(id, e.target.value)}
+                            className={`border border-gray-300 text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-24 p-1.5 outline-none ${(formData.chapterPermissions[id] === 'admin' || formData.chapterPermissions[id] === 'chair')
+                                ? 'bg-yellow-50 text-yellow-700 font-bold border-yellow-200'
+                                : 'bg-white text-gray-700'
+                              }`}
+                          >
+                            {PERMISSIONS.map(p => (
+                              <option key={p.slug} value={p.slug}>{p.label}</option>
+                            ))}
+                          </select>
+                        </div>
 
                         <button
                           type="button"
