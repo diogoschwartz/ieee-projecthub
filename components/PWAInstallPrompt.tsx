@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useRegisterSW } from 'virtual:pwa-register/react';
 import { Download, X, RefreshCw } from 'lucide-react';
 
 interface PWAInstallPromptProps {
@@ -11,8 +12,22 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall })
   const [isInstallable, setIsInstallable] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
+  // Use o hook oficial para gerenciar o SW
+  const {
+    offlineReady: [offlineReady, setOfflineReady],
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegistered(r) {
+      console.log('SW Registered:', r);
+    },
+    onRegisterError(error) {
+      console.log('SW Registration Error', error);
+    },
+  });
+
   useEffect(() => {
-    // Evento de instalação do PWA
+    // Evento de instalação do PWA (para "Adicionar à Tela Inicial")
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -28,31 +43,26 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall })
       console.log('PWA instalado com sucesso');
     };
 
-    // Verifica se há atualizações disponíveis
-    const checkForUpdates = () => {
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          setUpdateAvailable(true);
-        });
-      }
-    };
+    // Atualização disponível vinda do hook
+    if (needRefresh) {
+      setUpdateAvailable(true);
+    }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
-    checkForUpdates();
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [needRefresh]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    
+
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
       setShowInstallPrompt(false);
@@ -61,7 +71,8 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({ onInstall })
   };
 
   const handleUpdateClick = () => {
-    window.location.reload();
+    // Força a atualização do SW e reload
+    updateServiceWorker(true);
   };
 
   const dismissPrompt = () => {
@@ -148,7 +159,7 @@ export const useIsPWA = () => {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
       const isNavigatorStandalone = (navigator as any).standalone === true;
       const isWebKit = 'WebkitAppearance' in document.documentElement.style;
-      
+
       setIsPWA(isStandalone || isNavigatorStandalone || (isWebKit && !isNavigatorStandalone));
     };
 
