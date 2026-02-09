@@ -3,6 +3,7 @@ import { Maximize2, Minimize2, Calendar, Flag, Plus, X, Loader2 } from 'lucide-r
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
+import { getTaskUrl } from '../lib/utils';
 
 interface Checkpoint {
   title: string;
@@ -27,7 +28,7 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
   // Helper para normalizar datas (apenas YYYY-MM-DD)
   const normalizeDate = (dateStr: string) => {
     if (!dateStr) return new Date();
-    
+
     // Fix: Parse manually YYYY-MM-DD to ensure local timezone is used.
     // This prevents new Date('YYYY-MM-DD') from being interpreted as UTC midnight (which shows as previous day in Western timezones)
     const part = dateStr.split('T')[0];
@@ -200,7 +201,7 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
             {tasks.map((task) => (
               <div
                 key={task.id}
-                onClick={() => navigate(`/tasks/${task.id}`)}
+                onClick={() => navigate(getTaskUrl(task))}
                 className="border-b border-gray-100 px-4 py-2 flex flex-col justify-center items-start cursor-pointer hover:bg-gray-50 transition-colors group relative"
                 style={{ height: ROW_HEIGHT }}
               >
@@ -212,7 +213,7 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
                   <span className={`text-[10px] px-1.5 py-0.5 rounded border uppercase font-bold tracking-wide ${getPriorityColor(task.prioridade)}`}>
                     {task.prioridade}
                   </span>
-                  
+
                   {task.tags && task.tags.length > 0 && (
                     <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded truncate border border-gray-200 max-w-[120px]">
                       {task.tags[0]}
@@ -283,7 +284,7 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
                 return (
                   <div
                     key={task.id}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task.id}`); }}
+                    onClick={(e) => { e.stopPropagation(); navigate(getTaskUrl(task)); }}
                     className="absolute group z-10"
                     style={{
                       top: i * ROW_HEIGHT + 24,
@@ -295,15 +296,15 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
                     <div
                       className={`h-full rounded-md shadow-sm ${getStatusColor(task.status)} bg-opacity-90 hover:bg-opacity-100 transition-all cursor-pointer relative flex items-center justify-center`}
                     ></div>
-                    
+
                     {/* Tooltip Customizado */}
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 bg-gray-900 text-white text-xs px-3 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none shadow-xl min-w-max border border-gray-700">
                       <div className="font-bold text-sm mb-1">{task.titulo}</div>
                       <div className="text-xs text-gray-300 mb-1 flex flex-wrap gap-1 max-w-[200px]">
                         {taskAssignees.length > 0 ? (
-                           taskAssignees.map(u => (
-                             <span key={u.id} className="bg-gray-800 px-1 rounded">{u.nome.split(' ')[0]}</span>
-                           ))
+                          taskAssignees.map(u => (
+                            <span key={u.id} className="bg-gray-800 px-1 rounded">{u.nome.split(' ')[0]}</span>
+                          ))
                         ) : 'Sem responsável'}
                       </div>
                       <div className="text-[10px] text-gray-400 border-t border-gray-700 pt-1 mt-1">
@@ -363,7 +364,7 @@ export const ProjectGantt = ({ projectId, tasks, checkpoints = [] }: ProjectGant
 
   return (
     <>
-      <div 
+      <div
         className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col transition-all ${isFullScreen ? 'fixed inset-0 z-50 m-0 rounded-none' : 'w-full'}`}
         style={{ height: typeof containerHeight === 'number' ? `${containerHeight}px` : containerHeight }}
       >

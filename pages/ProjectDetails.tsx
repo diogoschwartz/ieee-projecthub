@@ -192,8 +192,8 @@ export const ProjectDetails = () => {
     now.setHours(0, 0, 0, 0);
     // Filter events for this project, sorted by date
     return events
-      .filter((e: any) => e.projectId === projeto.id && new Date(e.startDate) >= now)
-      .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+      .filter((e: any) => e.projectId === projeto.id && new Date(e.startDate.length === 10 ? e.startDate + 'T12:00:00' : e.startDate) >= now)
+      .sort((a: any, b: any) => new Date(a.startDate.length === 10 ? a.startDate + 'T12:00:00' : a.startDate).getTime() - new Date(b.startDate.length === 10 ? b.startDate + 'T12:00:00' : b.startDate).getTime());
   }, [events, projeto.id]);
 
   const handleEventClick = (rawEvent: any) => {
@@ -262,7 +262,7 @@ export const ProjectDetails = () => {
           bucket.noDate.push(t);
           return;
         }
-        const d = new Date(t.prazo);
+        const d = new Date(t.prazo + 'T12:00:00');
         d.setHours(0, 0, 0, 0);
         const diffTime = d.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -275,7 +275,7 @@ export const ProjectDetails = () => {
       });
 
       // Helper to sort inside groups
-      const sortDate = (a: any, b: any) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime();
+      const sortDate = (a: any, b: any) => new Date(a.prazo + 'T12:00:00').getTime() - new Date(b.prazo + 'T12:00:00').getTime();
 
       if (bucket.overdue.length) groups.push({ id: 'overdue', label: 'Atrasadas', tasks: bucket.overdue.sort(sortDate), color: 'text-red-600', icon: AlertCircle });
       if (bucket.today.length) groups.push({ id: 'today', label: 'Para Hoje', tasks: bucket.today.sort(sortDate), color: 'text-orange-600', icon: Clock });
@@ -285,7 +285,7 @@ export const ProjectDetails = () => {
       if (bucket.noDate.length) groups.push({ id: 'nodate', label: 'Sem Prazo', tasks: bucket.noDate });
     }
     else if (sortBy === 'startDate') {
-      const withDate = tarefasFiltradas.filter((t: any) => t.dataInicio).sort((a: any, b: any) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
+      const withDate = tarefasFiltradas.filter((t: any) => t.dataInicio).sort((a: any, b: any) => new Date(a.dataInicio + 'T12:00:00').getTime() - new Date(b.dataInicio + 'T12:00:00').getTime());
       const noDate = tarefasFiltradas.filter((t: any) => !t.dataInicio);
 
       if (withDate.length) groups.push({ id: 'dated', label: 'Cronograma', tasks: withDate });
@@ -476,7 +476,7 @@ export const ProjectDetails = () => {
                     </div>
                     <span className="flex items-center gap-1.5">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      {projeto.dataInicio ? new Date(projeto.dataInicio).toLocaleDateString('pt-BR') : ''} - {projeto.dataFim ? new Date(projeto.dataFim).toLocaleDateString('pt-BR') : ''}
+                      {projeto.dataInicio ? new Date(projeto.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : ''} - {projeto.dataFim ? new Date(projeto.dataFim + 'T12:00:00').toLocaleDateString('pt-BR') : ''}
                     </span>
 
                     <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
@@ -616,7 +616,7 @@ export const ProjectDetails = () => {
             {projectEvents.length > 0 ? (
               <div className="space-y-3">
                 {projectEvents.map((event: any) => {
-                  const date = new Date(event.startDate);
+                  const date = new Date(event.startDate.length === 10 ? event.startDate + 'T12:00:00' : event.startDate);
                   const day = date.getDate();
                   const month = date.toLocaleString('default', { month: 'short' }).toUpperCase();
 
@@ -819,7 +819,7 @@ export const ProjectDetails = () => {
 
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3.5 h-3.5" />
-                                {tarefa.prazo ? new Date(tarefa.prazo).toLocaleDateString('pt-BR') : '-'}
+                                {tarefa.prazo ? new Date(tarefa.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
                               </span>
 
                               <div className="flex items-center gap-3 ml-auto mr-4">

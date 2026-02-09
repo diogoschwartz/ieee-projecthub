@@ -101,7 +101,7 @@ export const MyTasks = () => {
   }, []);
 
   // Filter only tasks assigned to current user AND NOT ARCHIVED
-  const myTasks = tasks.filter((t: any) => profile?.id && t.responsavelId === profile.id && t.status !== 'archived');
+  const myTasks = tasks.filter((t: any) => profile?.id && t.responsavelIds?.includes(profile.id) && t.status !== 'archived');
 
   // Calculate statistics
   const stats = {
@@ -265,7 +265,7 @@ export const MyTasks = () => {
                       groupKey === 'urgentes' ? 'text-orange-600' : 'text-gray-500'
                       }`}>
                       <Calendar className="w-4 h-4" />
-                      {new Date(tarefa.prazo).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      {new Date(tarefa.prazo + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                     </span>
                   ) : (
                     <span className="text-gray-400 text-xs italic">Sem prazo</span>

@@ -326,7 +326,7 @@ export const TaskDetails = () => {
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
                   <Calendar className="w-4 h-4 text-orange-500" />
                   <span className="font-medium text-gray-700">
-                    {task.dataInicio ? new Date(task.dataInicio).toLocaleDateString('pt-BR') : '...'} - {task.prazo ? new Date(task.prazo).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                    {task.dataInicio ? new Date(task.dataInicio + 'T12:00:00').toLocaleDateString('pt-BR') : '...'} - {task.prazo ? new Date(task.prazo + 'T12:00:00').toLocaleDateString('pt-BR') : 'Sem prazo'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">

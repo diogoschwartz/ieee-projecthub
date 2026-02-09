@@ -303,24 +303,7 @@ DECLARE
 BEGIN
   -- 1. Cria o Perfil
   INSERT INTO public.profiles (
-    auth_id,
-    email,
-    full_name,
-    role,
-    avatar_initials,
-    phone,
-    matricula,
-    birth_date,
-    membership_number,
-    social_links,
-    course,
-    skills,
-    photo_url,
-    ieee_membership_date,
-    notes,
-    cpf,
-    bio,
-    cover_config
+    auth_id, email, full_name, role, avatar_initials, phone, matricula, birth_date, membership_number, social_links, course, skills, photo_url, ieee_membership_date, notes, cpf, bio, cover_config
   )
   VALUES (
     new.id,
@@ -330,34 +313,31 @@ BEGIN
     new.raw_user_meta_data->>'avatar_initials',
     new.raw_user_meta_data->>'phone',
     new.raw_user_meta_data->>'matricula',
-    -- Tratamento de erro para data: se for string vazia ou nula, salva NULL
     CASE 
       WHEN new.raw_user_meta_data->>'birth_date' = '' THEN NULL 
       ELSE (new.raw_user_meta_data->>'birth_date')::date 
     END,
     new.raw_user_meta_data->>'membership_number',
-    COALESCE(new.raw_user_meta_data->'social_links', '{}'::jsonb), -- Garante objeto vazio se nulo
+    COALESCE(new.raw_user_meta_data->'social_links', '{}'::jsonb),
     new.raw_user_meta_data->>'course',
-    -- Garante array vazio se não vier nada
     ARRAY(SELECT jsonb_array_elements_text(COALESCE(new.raw_user_meta_data->'skills', '[]'::jsonb))), 
     new.raw_user_meta_data->>'photo_url',
     new.raw_user_meta_data->>'ieee_membership_date',
     new.raw_user_meta_data->>'notes',
-    -- Garante array vazio para CPF também
     ARRAY(SELECT jsonb_array_elements_text(COALESCE(new.raw_user_meta_data->'cpf', '[]'::jsonb))),
-    new.raw_user_meta_data->>'bio'
+    new.raw_user_meta_data->>'bio',
+    new.raw_user_meta_data->>'cover_config'
   )
-  RETURNING id INTO _profile_id; -- Salva o ID gerado na variável
+  RETURNING id INTO _profile_id;
 
-  -- 2. Cria o Vínculo com os Capítulos (Se houver)
-  -- Formato esperado: chapters: [{ "id": 1, "role": "Voluntário" }]
+  -- 2. Cria o Vínculo com os Capítulos
   IF (new.raw_user_meta_data->'chapters') IS NOT NULL AND jsonb_array_length(new.raw_user_meta_data->'chapters') > 0 THEN
     INSERT INTO public.profile_chapters (profile_id, chapter_id, role, permission_slug)
     SELECT 
-      _profile_id, -- Usa a variável capturada acima (mais seguro e rápido)
+      _profile_id,
       (idx->>'id')::bigint,
       idx->>'role',
-      'member' -- Permissão padrão (Definido pelo requisito: membro)
+      'member'
     FROM jsonb_array_elements(new.raw_user_meta_data->'chapters') as idx
     WHERE (idx->>'id') IS NOT NULL AND (idx->>'id') != '';
   END IF;
