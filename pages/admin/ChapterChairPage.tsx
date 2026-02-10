@@ -148,7 +148,7 @@ export const ChapterChairPage = () => {
         keywords: Array.isArray(currentChapter.keywords) ? currentChapter.keywords.join(', ') : ''
       });
 
-      setLinks(currentChapter.links || []);
+      setLinks(currentChapter.content_url || []);
 
       const theme = currentChapter.color_theme || currentChapter.cor;
       if (theme) {
@@ -263,17 +263,21 @@ export const ChapterChairPage = () => {
     setIsAddingLink(true);
     const updatedLinks = [...links, newLink];
     try {
+      const payload = JSON.stringify(updatedLinks);
       const { error } = await supabase
         .from('chapters')
-        .update({ content_url: JSON.stringify(updatedLinks) })
+        .update({ content_url: payload })
         .eq('id', currentChapter.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error:", error);
+        throw error;
+      };
       setNewLink({ title: '', url: '', emoji: '🔗' });
       await fetchData(true);
-    } catch (e) {
-      console.error("Error saving link", e);
-      alert("Erro ao salvar link");
+    } catch (e: any) {
+      console.error("Error saving link:", e);
+      alert(`Erro ao salvar link: ${e.message || e.error_description || JSON.stringify(e)}`);
     } finally {
       setIsAddingLink(false);
     }
@@ -289,11 +293,15 @@ export const ChapterChairPage = () => {
         .update({ content_url: JSON.stringify(updatedLinks) })
         .eq('id', currentChapter.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase Error (Delete):", error);
+        throw error;
+      }
       await fetchData(true);
-    } catch (e) {
-      console.error("Error removing link", e);
-      alert("Erro ao remover link");
+    } catch (e: any) {
+      console.error("Error removing link:", e);
+      alert(`Erro ao remover link: ${e.message || JSON.stringify(e)}`);
+      // Rollback optimistic UI if needed, but for now just alert
     }
   };
 

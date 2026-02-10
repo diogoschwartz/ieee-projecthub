@@ -170,7 +170,7 @@ CREATE POLICY "Everyone can view chapters" ON public.chapters FOR SELECT TO auth
 
 CREATE POLICY "Admin/Chair can edit chapters" ON public.chapters
 FOR UPDATE TO authenticated
-USING (public.is_chapter_admin_or_chair(id));
+USING (public.is_chapter_management(id));
 
 -- ====================
 -- 3. CLASSIFIEDS

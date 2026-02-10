@@ -61,21 +61,35 @@ export const ChapterDetails = () => {
   const chapterEvents = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
+
     // Filter events: Matches Chapter ID AND Project ID is null/falsy AND Date >= today
     return events
-      .filter((e: any) =>
-        e.chapterId === Number(id) &&
-        !e.projectId &&
-        new Date(e.startDate) >= now
-      )
-      .sort((a: any, b: any) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
-  }, [events, id]);
+      .filter((e: any) => {
+        // Handle ID mismatch (params vs object)
+        const chapterIdMatch = e.chapterId === chapter.id || e.chapter_id === chapter.id;
+
+        // Handle field name variations (camelCase vs snake_case)
+        const startDate = e.startDate || e.start_date;
+        const projectCheck = !e.projectId && !e.project_id; // Check both camel and snake
+
+        return (
+          chapterIdMatch &&
+          projectCheck &&
+          new Date(startDate) >= now
+        );
+      })
+      .sort((a: any, b: any) => {
+        const dateA = new Date(a.startDate || a.start_date);
+        const dateB = new Date(b.startDate || b.start_date);
+        return dateA.getTime() - dateB.getTime();
+      });
+  }, [events, chapter]);
 
   const handleEventClick = (rawEvent: any) => {
     const formattedEvent = {
       title: rawEvent.title,
-      start: new Date(rawEvent.startDate),
-      end: new Date(rawEvent.endDate),
+      start: new Date(rawEvent.startDate || rawEvent.start_date),
+      end: new Date(rawEvent.endDate || rawEvent.end_date),
       resource: rawEvent,
       isExternal: false
     };
@@ -88,7 +102,7 @@ export const ChapterDetails = () => {
   }
 
   const Icon = chapter.icon;
-  const links = chapter.links || [];
+  const links = chapter.content_url || [];
 
   // Lógica de Ordenação de Cargos
   const getRolePriority = (role: string = '') => {
@@ -140,7 +154,13 @@ export const ChapterDetails = () => {
     if (isGlobalAdmin) return true;
     const userChapterRole = profile.profileChapters?.find((pc: any) => pc.chapter_id === chapter.id)?.permission_slug;
     if (userChapterRole && ['admin', 'chair', 'manager'].includes(userChapterRole)) return true;
+
+    // Check ownership
     if (projeto.ownerIds?.includes(profile.id) || projeto.owners?.some((o: any) => o.id === profile.id)) return true;
+
+    // Check membership (Aligning with CalendarPage logic)
+    if (projeto.projectMembers?.some((pm: any) => pm.profile_id === profile.id)) return true;
+
     return false;
   };
 
@@ -345,28 +365,7 @@ export const ChapterDetails = () => {
         </div>
       </div>
 
-      {/* RESOURCES & LINKS SECTION (READ ONLY) */}
-      {links.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-8">
-          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-blue-500" />
-            Recursos e Links
-          </h3>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {links.map((link: any, idx: number) => (
-              <div
-                key={idx}
-                className="group relative bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:shadow-md hover:border-blue-200 transition-all cursor-pointer h-32"
-                onClick={() => window.open(link.url, '_blank')}
-              >
-                <span className="text-3xl mb-2 block">{link.emoji}</span>
-                <span className="text-xs font-bold text-gray-800 line-clamp-2 leading-tight">{link.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* MEMBERS SECTION */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-8">
@@ -471,6 +470,29 @@ export const ChapterDetails = () => {
           })}
         </div>
       </div>
+
+      {/* RESOURCES & LINKS SECTION (READ ONLY) */}
+      {links.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mt-8">
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-blue-500" />
+            Recursos e Links
+          </h3>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {links.map((link: any, idx: number) => (
+              <div
+                key={idx}
+                className="group relative bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center text-center hover:shadow-md hover:border-blue-200 transition-all cursor-pointer h-32"
+                onClick={() => window.open(link.url, '_blank')}
+              >
+                <span className="text-3xl mb-2 block">{link.emoji}</span>
+                <span className="text-xs font-bold text-gray-800 line-clamp-2 leading-tight">{link.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
