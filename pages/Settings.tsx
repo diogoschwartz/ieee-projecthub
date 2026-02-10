@@ -152,7 +152,7 @@ export const Settings = () => {
                email: formData.email,
                matricula: formData.matricula,
                membership_number: formData.nroMembresia,
-               birth_date: formData.dataNascimento,
+               birth_date: formData.dataNascimento || null,
                photo_url: formData.foto,
                cover_config: formData.coverConfig,
                bio: formData.bio,

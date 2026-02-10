@@ -148,8 +148,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- ====================
 -- 1. CHAPTER GOALS
 -- ====================
+DROP POLICY IF EXISTS "Everyone can view chapter goals" ON public.chapter_goals;
 CREATE POLICY "Everyone can view chapter goals" ON public.chapter_goals FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Admin/Chair/Manager can manage chapter goals" ON public.chapter_goals;
 CREATE POLICY "Admin/Chair/Manager can manage chapter goals" ON public.chapter_goals
 FOR ALL TO authenticated
 USING (
@@ -166,8 +168,10 @@ USING (
 -- ====================
 -- 2. CHAPTERS
 -- ====================
+DROP POLICY IF EXISTS "Everyone can view chapters" ON public.chapters;
 CREATE POLICY "Everyone can view chapters" ON public.chapters FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Admin/Chair can edit chapters" ON public.chapters;
 CREATE POLICY "Admin/Chair can edit chapters" ON public.chapters
 FOR UPDATE TO authenticated
 USING (public.is_chapter_management(id));
@@ -175,6 +179,7 @@ USING (public.is_chapter_management(id));
 -- ====================
 -- 3. CLASSIFIEDS
 -- ====================
+DROP POLICY IF EXISTS "Everyone can view classifieds" ON public.classifieds;
 CREATE POLICY "Everyone can view classifieds" ON public.classifieds FOR SELECT TO authenticated USING (true);
 
 -- Edit: Creator (implied by linking to profile?) OR Admin
@@ -190,17 +195,24 @@ CREATE POLICY "Everyone can view classifieds" ON public.classifieds FOR SELECT T
 -- Let's just allow ALL authenticated to Create, and Admin to Update/Delete for safety, 
 -- UNLESS I assume `responsible_name` matches profile name (weak).
 -- Safer bet: Allow Insert for All. Update for Admin.
+DROP POLICY IF EXISTS "Everyone can create classifieds" ON public.classifieds;
 CREATE POLICY "Everyone can create classifieds" ON public.classifieds FOR INSERT TO authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Admin can update/delete classifieds" ON public.classifieds;
 CREATE POLICY "Admin can update/delete classifieds" ON public.classifieds FOR UPDATE TO authenticated USING (public.is_admin()); 
+
+DROP POLICY IF EXISTS "Admin can delete classifieds" ON public.classifieds;
 CREATE POLICY "Admin can delete classifieds" ON public.classifieds FOR DELETE TO authenticated USING (public.is_admin());
 
 
 -- ====================
 -- 4. EVENTS
 -- ====================
+DROP POLICY IF EXISTS "Everyone can view events" ON public.events;
 CREATE POLICY "Everyone can view events" ON public.events FOR SELECT TO authenticated USING (true);
 
 -- Edit: Events of their Chapter.
+DROP POLICY IF EXISTS "Members can edit own chapter events" ON public.events;
 CREATE POLICY "Members can edit own chapter events" ON public.events
 FOR ALL TO authenticated
 USING (
@@ -219,10 +231,12 @@ USING (
 -- ====================
 -- 5. PERMISSIONS
 -- ====================
+DROP POLICY IF EXISTS "Only Admin can manage permissions" ON public.permissions;
 CREATE POLICY "Only Admin can manage permissions" ON public.permissions
 FOR ALL TO authenticated
 USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Everyone can view permissions" ON public.permissions;
 CREATE POLICY "Everyone can view permissions" ON public.permissions FOR SELECT TO authenticated USING (true);
 
 
@@ -231,12 +245,17 @@ CREATE POLICY "Everyone can view permissions" ON public.permissions FOR SELECT T
 -- ====================
 
 -- profile_chapter: Admin only edit
+DROP POLICY IF EXISTS "Admin manages profile_chapters" ON public.profile_chapters;
 CREATE POLICY "Admin manages profile_chapters" ON public.profile_chapters FOR ALL TO authenticated USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Everyone views profile_chapters" ON public.profile_chapters;
 CREATE POLICY "Everyone views profile_chapters" ON public.profile_chapters FOR SELECT TO authenticated USING (true);
 
 -- profiles: Member edits own, Admin edits all.
+DROP POLICY IF EXISTS "Everyone views profiles" ON public.profiles;
 CREATE POLICY "Everyone views profiles" ON public.profiles FOR SELECT TO authenticated USING (true);
 
+DROP POLICY IF EXISTS "Users edit own profile" ON public.profiles;
 CREATE POLICY "Users edit own profile" ON public.profiles
 FOR UPDATE TO authenticated
 USING (
@@ -250,18 +269,33 @@ USING (
 -- ====================
 
 -- Policies for PROJECTS
+DROP POLICY IF EXISTS "Everyone can view projects" ON public.projects;
 CREATE POLICY "Everyone can view projects" ON public.projects FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Eligible users can create projects" ON public.projects;
 CREATE POLICY "Eligible users can create projects" ON public.projects FOR INSERT TO authenticated WITH CHECK (public.is_any_chapter_management());
+
+DROP POLICY IF EXISTS "Eligible users can manage projects" ON public.projects;
 CREATE POLICY "Eligible users can manage projects" ON public.projects FOR ALL TO authenticated USING (public.can_manage_project(id));
 
 -- Policies for PROJECT_MEMBERS
+DROP POLICY IF EXISTS "Everyone can view project members" ON public.project_members;
 CREATE POLICY "Everyone can view project members" ON public.project_members FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Project managers can insert members" ON public.project_members;
 CREATE POLICY "Project managers can insert members" ON public.project_members FOR INSERT TO authenticated WITH CHECK (public.can_manage_project(project_id));
+
+DROP POLICY IF EXISTS "Project managers can update members" ON public.project_members;
 CREATE POLICY "Project managers can update members" ON public.project_members FOR UPDATE TO authenticated USING (public.can_manage_project(project_id));
+
+DROP POLICY IF EXISTS "Project managers can delete members" ON public.project_members;
 CREATE POLICY "Project managers can delete members" ON public.project_members FOR DELETE TO authenticated USING (public.can_manage_project(project_id));
 
 -- Policies for PROJECT_CHAPTERS
+DROP POLICY IF EXISTS "Everyone can view project chapters" ON public.project_chapters;
 CREATE POLICY "Everyone can view project chapters" ON public.project_chapters FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Project managers can manage chapters" ON public.project_chapters;
 CREATE POLICY "Project managers can manage chapters" ON public.project_chapters FOR ALL TO authenticated USING (public.can_manage_project(project_id));
 
 -- ====================
@@ -269,22 +303,34 @@ CREATE POLICY "Project managers can manage chapters" ON public.project_chapters 
 -- ====================
 
 -- Policies for TASKS
+DROP POLICY IF EXISTS "Everyone can view tasks" ON public.tasks;
 CREATE POLICY "Everyone can view tasks" ON public.tasks FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Project managers can create tasks" ON public.tasks;
 CREATE POLICY "Project managers can create tasks" ON public.tasks FOR INSERT TO authenticated WITH CHECK (public.can_manage_project(project_id));
+
+DROP POLICY IF EXISTS "Eligible users can update tasks" ON public.tasks;
 CREATE POLICY "Eligible users can update tasks" ON public.tasks FOR UPDATE TO authenticated USING (public.can_update_task(id, project_id));
+
+DROP POLICY IF EXISTS "Project managers can delete tasks" ON public.tasks;
 CREATE POLICY "Project managers can delete tasks" ON public.tasks FOR DELETE TO authenticated USING (public.can_manage_project(project_id));
 
 -- Policies for TASK_ASSIGNEES
+DROP POLICY IF EXISTS "Everyone can view task assignees" ON public.task_assignees;
 CREATE POLICY "Everyone can view task assignees" ON public.task_assignees FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Project managers can manage assignees" ON public.task_assignees;
 CREATE POLICY "Project managers can manage assignees" ON public.task_assignees FOR ALL TO authenticated USING (public.can_manage_project((SELECT project_id FROM public.tasks WHERE id = task_id)));
 
 -- ====================
 -- 10. FINANCES
 -- ====================
+DROP POLICY IF EXISTS "Admin manages all finances" ON public.finances;
 CREATE POLICY "Admin manages all finances" ON public.finances
 FOR ALL TO authenticated
 USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Chapter Chairs manage own finances" ON public.finances;
 CREATE POLICY "Chapter Chairs manage own finances" ON public.finances
 FOR ALL TO authenticated
 USING (
