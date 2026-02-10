@@ -143,7 +143,7 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
       setOwnerSearchQuery('');
       setTeamSearchQuery('');
     }
-  }, [isOpen, projectToEdit, initialChapterId]);
+  }, [isOpen, projectToEdit?.id, initialChapterId]);
 
   // Click Outside Handler
   useEffect(() => {

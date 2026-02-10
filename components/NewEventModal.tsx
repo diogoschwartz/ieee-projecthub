@@ -174,7 +174,7 @@ export const NewEventModal = ({ isOpen, onClose, eventToEdit }: NewEventModalPro
         setIsMultiDay(false);
       }
     }
-  }, [isOpen, eventToEdit, allowedChapters]);
+  }, [isOpen, eventToEdit?.id]);
 
   // Recalculate End Date when Start Date or Duration changes (ONLY if NOT multi-day)
   useEffect(() => {

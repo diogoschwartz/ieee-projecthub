@@ -40,7 +40,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchData = async (skipLoading = false) => {
     try {
-      if (!skipLoading) setLoading(true);
+      // Only show global loading if we don't have data yet, or if forced
+      const hasData = tasks.length > 0 || projects.length > 0 || users.length > 0;
+      if (!skipLoading && !hasData) {
+        setLoading(true);
+      }
 
       const [
         capsRes, profsRes, projsRes, tasksRes, eventsRes,
@@ -318,6 +322,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.error("Erro ao carregar dados:", e);
     } finally {
+      // Always turn off loading at end
       if (!skipLoading) setLoading(false);
     }
   };
@@ -328,7 +333,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!authLoading) {
       fetchData();
     }
-  }, [authLoading, user]);
+  }, [authLoading, user?.id]);
 
   return (
     <DataContext.Provider value={{

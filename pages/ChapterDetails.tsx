@@ -149,18 +149,51 @@ export const ChapterDetails = () => {
   };
 
   const canAccessProject = (projeto: any) => {
-    if (!profile) return false;
+    if (!profile) {
+      console.log('AdminAccessDebug: No profile loaded');
+      return false;
+    }
+
+    // Debug Logs
+    console.group(`AdminAccessDebug: Project ${projeto.id} (${projeto.nome})`);
+    console.log('Chapter ID:', chapter.id);
+    console.log('Profile ID:', profile.id);
+    console.log('Profile Chapters:', profile.profileChapters);
+
     const isGlobalAdmin = profile.profileChapters?.some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
-    if (isGlobalAdmin) return true;
+    console.log('isGlobalAdmin:', isGlobalAdmin);
+    if (isGlobalAdmin) {
+      console.groupEnd();
+      return true;
+    }
+
     const userChapterRole = profile.profileChapters?.find((pc: any) => pc.chapter_id === chapter.id)?.permission_slug;
-    if (userChapterRole && ['admin', 'chair', 'manager'].includes(userChapterRole)) return true;
+    console.log('User Chapter Role:', userChapterRole);
+
+    if (userChapterRole && ['admin', 'chair', 'manager'].includes(userChapterRole)) {
+      console.log('Access granted via Chapter Role');
+      console.groupEnd();
+      return true;
+    }
 
     // Check ownership
-    if (projeto.ownerIds?.includes(profile.id) || projeto.owners?.some((o: any) => o.id === profile.id)) return true;
+    const isOwner = projeto.ownerIds?.includes(profile.id) || projeto.owners?.some((o: any) => o.id === profile.id);
+    console.log('isOwner:', isOwner);
+    if (isOwner) {
+      console.groupEnd();
+      return true;
+    }
 
     // Check membership (Aligning with CalendarPage logic)
-    if (projeto.projectMembers?.some((pm: any) => pm.profile_id === profile.id)) return true;
+    const isMember = projeto.projectMembers?.some((pm: any) => pm.profile_id === profile.id);
+    console.log('isMember:', isMember);
+    if (isMember) {
+      console.groupEnd();
+      return true;
+    }
 
+    console.log('Access DENIED');
+    console.groupEnd();
     return false;
   };
 

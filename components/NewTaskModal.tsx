@@ -84,7 +84,7 @@ export const NewTaskModal = ({ isOpen, onClose, projeto = null, taskToEdit = nul
       }
       setTagInput('');
     }
-  }, [isOpen, projeto, taskToEdit, profile]);
+  }, [isOpen, projeto?.id, taskToEdit?.id]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

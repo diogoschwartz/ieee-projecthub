@@ -63,7 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (data) {
                 // Map any necessary legacy fields or hydration if needed immediately
                 // For now, raw data is fine for simple display
-                setProfile(data as any);
+                setProfile({
+                    ...(data as any),
+                    profileChapters: (data as any).profile_chapters
+                } as any);
             }
         } catch (error) {
             console.error('Unexpected error fetching profile:', error);
