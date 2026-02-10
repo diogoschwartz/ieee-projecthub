@@ -219,7 +219,15 @@ export const ProjectDetails = () => {
       };
 
       statusOrder.forEach(key => {
-        const groupTasks = tarefasFiltradas.filter((t: any) => t.status === key);
+        const groupTasks = tarefasFiltradas.filter((t: any) => t.status === key)
+          .sort((a: any, b: any) => {
+            // Sort by shortest deadline first
+            if (!a.prazo && !b.prazo) return 0;
+            if (!a.prazo) return 1; // No deadline at the end
+            if (!b.prazo) return -1; // No deadline at the end
+            return new Date(a.prazo + 'T12:00:00').getTime() - new Date(b.prazo + 'T12:00:00').getTime();
+          });
+
         if (groupTasks.length > 0) {
           groups.push({ id: key, label: statusLabels[key], tasks: groupTasks });
         }

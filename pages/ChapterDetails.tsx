@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, MapPin
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import { EventDetailsModal } from '../components/EventDetailsModal';
 import { getProjectUrl } from '../lib/utils';
 import { useLocation } from 'react-router-dom';
@@ -14,9 +15,13 @@ import { useLocation } from 'react-router-dom';
 export const ChapterDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const location = useLocation();
   const { chapters, users, projects, chapterGoals, events } = useData();
 
   const [activePeriod, setActivePeriod] = useState<string>('');
+
+
 
   // Events/Agenda State
   const [isEventsOpen, setIsEventsOpen] = useState(false);
@@ -31,9 +36,10 @@ export const ChapterDetails = () => {
     (c.acronym && c.acronym.toLowerCase() === id?.toLowerCase())
   );
 
-  const allChapterGoals = useMemo(() =>
-    chapterGoals.filter((g: any) => g.chapter_id === Number(id)),
-    [chapterGoals, id]);
+  const allChapterGoals = useMemo(() => {
+    if (!chapter) return [];
+    return chapterGoals.filter((g: any) => g.chapter_id === chapter.id);
+  }, [chapterGoals, chapter]);
 
   // Calcula os períodos disponíveis dinamicamente
   const availablePeriods = useMemo(() => {
@@ -128,8 +134,19 @@ export const ChapterDetails = () => {
     }
   };
 
+  const canAccessProject = (projeto: any) => {
+    if (!profile) return false;
+    const isGlobalAdmin = profile.profileChapters?.some((pc: any) => pc.chapter_id === 1 && pc.permission_slug === 'admin');
+    if (isGlobalAdmin) return true;
+    const userChapterRole = profile.profileChapters?.find((pc: any) => pc.chapter_id === chapter.id)?.permission_slug;
+    if (userChapterRole && ['admin', 'chair', 'manager'].includes(userChapterRole)) return true;
+    if (projeto.ownerIds?.includes(profile.id) || projeto.owners?.some((o: any) => o.id === profile.id)) return true;
+    return false;
+  };
+
   return (
     <div className="space-y-6 pb-20">
+      {/* ... previous content ... */}
 
       <EventDetailsModal
         isOpen={isDetailsModalOpen}
@@ -411,39 +428,47 @@ export const ChapterDetails = () => {
           Projetos do Capítulo
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {chapterProjects.map((projeto: any) => (
-            <div
-              key={projeto.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all overflow-hidden group cursor-pointer"
-              onClick={() => navigate(getProjectUrl(projeto), { state: { from: location.pathname } })}
-            >
-              <div className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${chapter.cor} flex items-center justify-center`}>
-                        <Briefcase className="w-4 h-4 text-white" />
+          {chapterProjects.map((projeto: any) => {
+            const hasAccess = canAccessProject(projeto);
+            return (
+              <div
+                key={projeto.id}
+                className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden group transition-all ${hasAccess ? 'cursor-pointer hover:shadow-md' : 'cursor-default opacity-80'
+                  }`}
+                onClick={() => {
+                  if (hasAccess) {
+                    navigate(getProjectUrl(projeto), { state: { from: location.pathname } });
+                  }
+                }}
+              >
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${chapter.cor} flex items-center justify-center`}>
+                          <Briefcase className="w-4 h-4 text-white" />
+                        </div>
+                        <h3 className="font-bold text-gray-900">{projeto.nome}</h3>
                       </div>
-                      <h3 className="font-bold text-gray-900">{projeto.nome}</h3>
-                    </div>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-4">{projeto.descricao}</p>
+                      <p className="text-sm text-gray-600 line-clamp-2 mb-4">{projeto.descricao}</p>
 
-                    <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
-                      <div
-                        className={`bg-gradient-to-r ${chapter.cor} h-2 rounded-full`}
-                        style={{ width: `${projeto.progresso}%` }}
-                      ></div>
-                    </div>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mb-4">
+                        <div
+                          className={`bg-gradient-to-r ${chapter.cor} h-2 rounded-full`}
+                          style={{ width: `${projeto.progresso}%` }}
+                        ></div>
+                      </div>
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{projeto.status}</span>
-                      <span className="font-medium text-gray-900">{projeto.progresso}%</span>
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <span>{projeto.status}</span>
+                        <span className="font-medium text-gray-900">{projeto.progresso}%</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
