@@ -17,6 +17,8 @@ import {
 import { useData } from '../context/DataContext';
 import { useNavigate } from 'react-router-dom';
 
+import { fuzzyMatch } from '../lib/searchUtils';
+
 export const Team = () => {
   const navigate = useNavigate();
   const { users, chapters } = useData();
@@ -27,8 +29,9 @@ export const Team = () => {
   // Filtering Logic
   const filteredUsers = users.filter((user: any) => {
     // 1. Filter by Name or Matricula
+    // Usando fuzzyMatch para lidar com typos e acentos
     const matchesSearch =
-      user.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      fuzzyMatch(user.nome, searchQuery) ||
       user.matricula.includes(searchQuery);
 
     // 2. Filter by Chapter
