@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Check, FolderKanban, Briefcase, Plus, Loader2, Save, Activity, Tag, ChevronDown, Flag } from 'lucide-react';
-import { UserAvatar } from '../lib/utils';
+import { UserAvatar, getLocalDateISOString } from '../lib/utils';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -19,11 +19,14 @@ export const NewTaskModal = ({ isOpen, onClose, projeto = null, taskToEdit = nul
   const { profile } = useAuth();
 
   // Helper to calculate default dates
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const getTodayDate = () => getLocalDateISOString();
   const getNextWeekDate = () => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const [formData, setFormData] = useState({

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../context/DataContext';
+import { formatDateDisplay } from '../lib/utils';
 
 export const UserDetails = () => {
   const { id } = useParams();
@@ -130,7 +131,7 @@ export const UserDetails = () => {
               </div>
               <div className="flex items-center gap-3 text-gray-600">
                 <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Nasc: {new Date(user.dataNascimento).toLocaleDateString('pt-BR')}</span>
+                <span>Nasc: {formatDateDisplay(user.dataNascimento)}</span>
               </div>
               {/* NOVO: Data Entrada IEEE */}
               {user.ieee_membership_date && (

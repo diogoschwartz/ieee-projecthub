@@ -163,7 +163,9 @@ export const MyTasks = () => {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const deadline = new Date(task.prazo);
+
+    // Fix: Force noon to avoid timezone shifts (e.g. 2023-10-25 -> 2023-10-24 21:00)
+    const deadline = new Date(task.prazo + 'T12:00:00');
     deadline.setHours(0, 0, 0, 0);
 
     const diffTime = deadline.getTime() - today.getTime();

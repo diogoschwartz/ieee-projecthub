@@ -61,10 +61,40 @@ export function getTaskUrl(task: { public_id?: string; title: string; id: number
   if (!task.public_id) {
     return `/tasks/${task.id}`;
   }
-  // Short URL for tasks: /tasks/nanoId
   // The user requested: http://localhost:3000/#/tasks/xyBgj
   // So we just use the public_id, no slug needed for tasks as per request
   return `/tasks/${task.public_id}`;
+}
+
+// --- Date Helpers ---
+
+/**
+ * Retorna a data atual no formato YYYY-MM-DD considerando o fuso horário LOCAL do usuário.
+ * Evita o bug onde new Date().toISOString() retorna a data de amanhã se for tarde da noite (UTC).
+ */
+export function getLocalDateISOString(): string {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Formata uma string de data (YYYY-MM-DD ou ISO) para visualização amigável (DD/MM/YYYY).
+ * Força a interpretação como meio-dia para evitar shifts de fuso horário (ex: 13/03 virar 12/03).
+ */
+export function formatDateDisplay(dateString: string | null | undefined): string {
+  if (!dateString) return '';
+
+  // Se vier como timestamp completo ISO, cortamos para YYYY-MM-DD
+  const cleanDate = dateString.split('T')[0];
+
+  // Criamos a data forçando meio-dia local/UTC neutro para display
+  // T12:00:00 garante que shifts de -3h ou +3h não mudem o dia
+  const dateObj = new Date(cleanDate + 'T12:00:00');
+
+  return dateObj.toLocaleDateString('pt-BR');
 }
 
 // Icon Mapper - Expandido com os ícones mais comuns do Lucide

@@ -144,7 +144,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           capituloId: userChapters.length > 0 ? userChapters[0].id : null,
           dataNascimento: u.birth_date,
           habilidades: u.skills || [],
-          foto: u.photo_url || `https://i.pravatar.cc/300?u=${u.id}`,
+          foto: u.photo_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.full_name)}&backgroundColor=00a3ef`,
           nroMembresia: u.membership_number,
           coverConfig: u.cover_config,
           social: u.social_links || { linkedin: '', github: '', instagram: '' }

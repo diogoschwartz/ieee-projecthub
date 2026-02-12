@@ -340,6 +340,25 @@ USING (
 );
 
 -- ====================
+-- 12. TOOLS
+-- ====================
+-- 1. Permissão de Visualização (Todos os usuários autenticados)
+DROP POLICY IF EXISTS "Everyone can view tools" ON public.tools;
+CREATE POLICY "Everyone can view tools" ON public.tools 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+-- 2. Permissão de Gerenciamento (Apenas Admins)
+-- Permite Insert, Update, Delete apenas para quem for Admin
+DROP POLICY IF EXISTS "Admin can manage tools" ON public.tools;
+CREATE POLICY "Admin can manage tools" ON public.tools 
+FOR ALL 
+TO authenticated 
+USING (public.is_admin());
+
+
+-- ====================
 -- 11. TRIGGER PARA CRIAÇÃO DE PERFIL AUTOMÁTICO
 -- ====================
 CREATE OR REPLACE FUNCTION public.handle_new_user()

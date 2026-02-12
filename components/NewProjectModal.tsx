@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, FolderKanban, Briefcase, Loader2, Save, Users, Check, Palette, Image, ChevronDown, User, Plus, Search, Trash2, Download, FileJson, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useData } from '../context/DataContext';
-import { UserAvatar, generatePublicId } from '../lib/utils';
+import { UserAvatar, getLocalDateISOString, generatePublicId } from '../lib/utils';
 import { pdf } from '@react-pdf/renderer';
 import { ProjectReportPDF } from './ProjectReportPDF';
 import { useGlobalAlert } from './GlobalAlert';
@@ -34,7 +34,7 @@ export const NewProjectModal = ({ isOpen, onClose, projectToEdit, initialChapter
     descricao: '',
     status: 'Planejamento',
     progresso: 0,
-    dataInicio: new Date().toISOString().split('T')[0],
+    dataInicio: getLocalDateISOString(),
     dataFim: '',
     isPartnership: false,
     tags: '',
