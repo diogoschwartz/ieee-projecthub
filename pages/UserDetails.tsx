@@ -11,12 +11,11 @@ import {
   Award,
   Linkedin,
   Github,
-  Instagram,
-  Hash
+  Instagram
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useData } from '../context/DataContext';
-import { formatDateDisplay } from '../lib/utils';
+
 
 export const UserDetails = () => {
   const { id } = useParams();
@@ -129,10 +128,7 @@ export const UserDetails = () => {
                 <GraduationCap className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <span>{user.course || 'Curso não informado'}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
-                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <span>Nasc: {formatDateDisplay(user.dataNascimento)}</span>
-              </div>
+
               {/* NOVO: Data Entrada IEEE */}
               {user.ieee_membership_date && (
                 <div className="flex items-center gap-3 text-gray-600">
@@ -140,12 +136,7 @@ export const UserDetails = () => {
                   <span>Membro IEEE desde: {user.ieee_membership_date}</span>
                 </div>
               )}
-              {user.nroMembresia && (
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Hash className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span>Membresia: {user.nroMembresia}</span>
-                </div>
-              )}
+
             </div>
 
             <div className="border-t border-gray-100 mt-6 pt-6">
