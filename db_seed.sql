@@ -37,16 +37,17 @@ INSERT INTO public.chapters (name, acronym, description, color_theme, icon_name,
 
 
 
--- 3. Inserir Perfis (Usuários)
-INSERT INTO public.profiles (full_name, email, role, matricula, avatar_initials, bio) VALUES
-('Admin Geral', 'admin@teste.com', 'Presidente do Ramo', '2020001', 'AG', 'Presidente gestion 2024. Focado em expansão.'),
-('Líder RAS', 'ras@teste.com', 'Presidente RAS', '2021002', 'LR', 'Apaixonado por robótica e automação.'),
-('Gerente de Projetos', 'pm@teste.com', 'Diretor de Projetos', '2022003', 'GP', 'Organizado e focado em entregas.'),
-('Membro Ativo', 'membro@teste.com', 'Voluntário', '2023004', 'MA', 'Estudante de engenharia elétrica.');
+-- Instalar pgcrypto para hash de senhas (necessário para o auth)
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
--- Recuperar IDs para relacionamentos
+-- 3. Inserir Usuarios Auth e Perfis (Profiles)
 DO $$
 DECLARE
+  v_admin_auth_id uuid := gen_random_uuid();
+  v_ras_auth_id uuid := gen_random_uuid();
+  v_pm_auth_id uuid := gen_random_uuid();
+  v_member_auth_id uuid := gen_random_uuid();
+
   v_chapter_ieee bigint;
   v_chapter_ras bigint;
   v_chapter_cs bigint;
@@ -61,6 +62,40 @@ DECLARE
   
   v_task_plan bigint;
 BEGIN
+
+  -- 3.1 Criar usuários no auth.users (Authentication do Supabase)
+  INSERT INTO auth.users (
+    instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token
+  ) VALUES
+  ('00000000-0000-0000-0000-000000000000', v_admin_auth_id, 'authenticated', 'authenticated', 'admin@teste.com', crypt('admin@teste.com', gen_salt('bf')), NOW(), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{"full_name": "Admin Geral"}', NOW(), NOW(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', v_ras_auth_id, 'authenticated', 'authenticated', 'ras@teste.com', crypt('ras@teste.com', gen_salt('bf')), NOW(), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{"full_name": "Líder RAS"}', NOW(), NOW(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', v_pm_auth_id, 'authenticated', 'authenticated', 'pm@teste.com', crypt('pm@teste.com', gen_salt('bf')), NOW(), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{"full_name": "Gerente de Projetos"}', NOW(), NOW(), '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', v_member_auth_id, 'authenticated', 'authenticated', 'membro@teste.com', crypt('membro@teste.com', gen_salt('bf')), NOW(), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{"full_name": "Membro Ativo"}', NOW(), NOW(), '', '', '', '');
+
+  -- 3.2 Inserir identidades para o login do Supabase funcionar corretamente com a senha atrelada
+  INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at) VALUES
+  (gen_random_uuid(), v_admin_auth_id, format('{"sub":"%s","email":"%s"}', v_admin_auth_id::text, 'admin@teste.com')::jsonb, 'email', v_admin_auth_id::text, NOW(), NOW(), NOW()),
+  (gen_random_uuid(), v_ras_auth_id, format('{"sub":"%s","email":"%s"}', v_ras_auth_id::text, 'ras@teste.com')::jsonb, 'email', v_ras_auth_id::text, NOW(), NOW(), NOW()),
+  (gen_random_uuid(), v_pm_auth_id, format('{"sub":"%s","email":"%s"}', v_pm_auth_id::text, 'pm@teste.com')::jsonb, 'email', v_pm_auth_id::text, NOW(), NOW(), NOW()),
+  (gen_random_uuid(), v_member_auth_id, format('{"sub":"%s","email":"%s"}', v_member_auth_id::text, 'membro@teste.com')::jsonb, 'email', v_member_auth_id::text, NOW(), NOW(), NOW());
+
+  -- 3.3 Inserir Perfis em public.profiles
+  -- Se o db já tiver triggers que criam estes os rows em public.profiles logo após a criacao em auth.users, esta inserção pode colidir
+  -- Usaremos um pequeno IF para garantir (não criamos se a trigger já tiver criado o perfil via auth):
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE email = 'admin@teste.com') THEN
+    INSERT INTO public.profiles (auth_id, full_name, email, role, matricula, avatar_initials, bio) VALUES
+    (v_admin_auth_id, 'Admin Geral', 'admin@teste.com', 'Presidente do Ramo', '2020001', 'AG', 'Presidente gestion 2024. Focado em expansão.'),
+    (v_ras_auth_id, 'Líder RAS', 'ras@teste.com', 'Presidente RAS', '2021002', 'LR', 'Apaixonado por robótica e automação.'),
+    (v_pm_auth_id, 'Gerente de Projetos', 'pm@teste.com', 'Diretor de Projetos', '2022003', 'GP', 'Organizado e focado em entregas.'),
+    (v_member_auth_id, 'Membro Ativo', 'membro@teste.com', 'Voluntário', '2023004', 'MA', 'Estudante de engenharia elétrica.');
+  ELSE
+    -- Caso a trigger já os tenha criado, apenas fazemos update dos campos faltantes
+    UPDATE public.profiles SET full_name = 'Admin Geral', role = 'Presidente do Ramo', matricula = '2020001', avatar_initials = 'AG', bio = 'Presidente gestion 2024. Focado em expansão.' WHERE email = 'admin@teste.com';
+    UPDATE public.profiles SET full_name = 'Líder RAS', role = 'Presidente RAS', matricula = '2021002', avatar_initials = 'LR', bio = 'Apaixonado por robótica e automação.' WHERE email = 'ras@teste.com';
+    UPDATE public.profiles SET full_name = 'Gerente de Projetos', role = 'Diretor de Projetos', matricula = '2022003', avatar_initials = 'GP', bio = 'Organizado e focado em entregas.' WHERE email = 'pm@teste.com';
+    UPDATE public.profiles SET full_name = 'Membro Ativo', role = 'Voluntário', matricula = '2023004', avatar_initials = 'MA', bio = 'Estudante de engenharia elétrica.' WHERE email = 'membro@teste.com';
+  END IF;
+
   -- Get Chapter IDs
   SELECT id INTO v_chapter_ieee FROM public.chapters WHERE acronym = 'Ramo';
   SELECT id INTO v_chapter_ras FROM public.chapters WHERE acronym = 'RAS';
