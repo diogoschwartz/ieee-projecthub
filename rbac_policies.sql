@@ -298,6 +298,9 @@ CREATE POLICY "Everyone can view project chapters" ON public.project_chapters FO
 DROP POLICY IF EXISTS "Project managers can manage chapters" ON public.project_chapters;
 CREATE POLICY "Project managers can manage chapters" ON public.project_chapters FOR ALL TO authenticated USING (public.can_manage_project(project_id));
 
+DROP POLICY IF EXISTS "Chapter managers can insert chapters" ON public.project_chapters;
+CREATE POLICY "Chapter managers can insert chapters" ON public.project_chapters FOR INSERT TO authenticated WITH CHECK (public.is_chapter_management(chapter_id));
+
 -- ====================
 -- 8. TASK DATA (tasks, task_assignees)
 -- ====================
